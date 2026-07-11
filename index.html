@@ -102,6 +102,20 @@
     .slider:before { content:""; position:absolute; height:22px; width:22px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
     .switch input:checked + .slider { background:var(--accent); }
     .switch input:checked + .slider:before { transform:translateX(20px); }
+        /* === ПУБЛИЧНЫЙ ПРОФИЛЬ (модалка) === */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:200; padding:20px; }
+    .modal-overlay.show { display:flex; }
+    .modal-card { background:var(--card); border:1px solid var(--accent); border-radius:20px; padding:24px 20px; width:100%; max-width:340px; text-align:center; position:relative; }
+    .modal-card .close-x { position:absolute; top:12px; right:16px; font-size:22px; color:var(--hint); cursor:pointer; }
+    .modal-card .m-avatar { width:70px; height:70px; border-radius:50%; background:var(--bg); border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--accent); margin:0 auto 12px; }
+    .modal-card .m-name { font-size:20px; font-weight:700; margin-bottom:4px; }
+    .modal-card .m-place { font-size:14px; color:var(--accent); margin-bottom:18px; }
+    .m-stats { display:flex; gap:8px; margin-bottom:16px; }
+    .m-stats .m-box { flex:1; background:var(--bg); border-radius:12px; padding:12px 6px; }
+    .m-stats .m-box .v { font-size:18px; font-weight:700; color:var(--accent); }
+    .m-stats .m-box .l { font-size:10px; color:var(--hint); margin-top:2px; }
+    .m-awards { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+    .m-award { font-size:22px; }
   </style>
 </head>
 <body>
@@ -190,6 +204,21 @@
     <div class="season-header" id="survey-title"></div>
     <div class="season-sub" id="survey-progress"></div>
     <div id="survey-body"></div>
+  </div>
+
+      <div id="profile-modal" class="modal-overlay" onclick="closeProfileModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <span class="close-x" onclick="closeProfileModal()">✕</span>
+      <div class="m-avatar">👤</div>
+      <div class="m-name" id="m-name">—</div>
+      <div class="m-place" id="m-place"></div>
+      <div class="m-stats">
+        <div class="m-box"><div class="v" id="m-score">0</div><div class="l">Баллов</div></div>
+        <div class="m-box"><div class="v" id="m-days">0</div><div class="l">Дней</div></div>
+        <div class="m-box"><div class="v" id="m-tasks">0</div><div class="l">Заданий</div></div>
+      </div>
+      <div class="m-awards" id="m-awards"></div>
+    </div>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -509,7 +538,7 @@
           else if (row.place === 2) topClass = 'top2';
           else if (row.place === 3) topClass = 'top3';
           const medal = row.place === 1 ? '🥇' : row.place === 2 ? '🥈' : row.place === 3 ? '🥉' : row.place;
-          return `<div class="rank-row ${topClass} ${isSelf ? 'self' : ''}">
+                    return `<div class="rank-row ${topClass} ${isSelf ? 'self' : ''}" style="cursor:pointer" onclick="openPublicProfile('${row.user_id}', ${row.place})">
                     <div class="rk-place">${medal}</div>
                     <div class="rk-name">${row.name}${isSelf ? ' (ты)' : ''}</div>
                     <div class="rk-score">${row.score}</div>
@@ -536,6 +565,44 @@
       } catch (e) {
         showToast('Не удалось сохранить');
       }
+    }
+
+        // === ПУБЛИЧНЫЙ ПРОФИЛЬ ===
+    async function openPublicProfile(targetId, place) {
+      tg.HapticFeedback?.impactOccurred('light');
+      const modal = document.getElementById('profile-modal');
+      document.getElementById('m-name').textContent = 'Загрузка…';
+      document.getElementById('m-place').textContent = '';
+      document.getElementById('m-score').textContent = '0';
+      document.getElementById('m-days').textContent = '0';
+      document.getElementById('m-tasks').textContent = '0';
+      document.getElementById('m-awards').innerHTML = '';
+      modal.classList.add('show');
+      try {
+        const res = await fetch(WORKER_URL + "?action=get_public_profile&user_id=" + user.id + "&target_id=" + targetId);
+        const data = await res.json();
+        if (!data.ok) {
+          document.getElementById('m-name').textContent = 'Профиль скрыт 🔒';
+          return;
+        }
+        const p = data.profile;
+        document.getElementById('m-name').textContent = p.name;
+        document.getElementById('m-place').textContent = place ? `${place} место в рейтинге` : '';
+        document.getElementById('m-score').textContent = p.score;
+        document.getElementById('m-days').textContent = p.days;
+        document.getElementById('m-tasks').textContent = p.tasks;
+        const aw = p.awards_list || [];
+        document.getElementById('m-awards').innerHTML = aw.length
+          ? aw.map(a => `<span class="m-award" title="${a.title || ''}">🏅</span>`).join('')
+          : '';
+      } catch (e) {
+        document.getElementById('m-name').textContent = 'Ошибка загрузки';
+      }
+    }
+
+    function closeProfileModal(e) {
+      if (e && e.target.closest('.modal-card')) return;
+      document.getElementById('profile-modal').classList.remove('show');
     }
     checkAccess();
   </script>
