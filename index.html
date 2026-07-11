@@ -69,7 +69,6 @@
       font-size: 12px;
       margin-top: 32px;
     }
-    /* Экран загрузки и блокировки */
     .center-screen {
       min-height: 80vh;
       display: flex;
@@ -117,13 +116,11 @@
 </head>
 <body>
 
-  <!-- ЭКРАН ЗАГРУЗКИ -->
   <div id="loading" class="center-screen">
     <div class="spinner"></div>
     <p style="margin-top:16px;color:var(--hint);font-size:13px;">Проверяем доступ…</p>
   </div>
 
-  <!-- ЭКРАН БЛОКИРОВКИ (не подписан) -->
   <div id="locked" class="center-screen hidden">
     <div class="logo">OWNER</div>
     <div class="subtitle">Закрытый мужской клуб</div>
@@ -135,7 +132,6 @@
     <button class="join-btn" onclick="goToPayment()">Вступить в Triumph Owner</button>
   </div>
 
-  <!-- ОСНОВНОЙ КОНТЕНТ (подписан) -->
   <div id="content" class="hidden">
     <div class="logo">OWNER</div>
     <div class="subtitle">Закрытый мужской клуб</div>
@@ -169,7 +165,6 @@
 
     const user = tg.initDataUnsafe?.user;
 
-    // Функция показа нужного экрана
     function showScreen(id) {
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('locked').classList.add('hidden');
@@ -177,13 +172,16 @@
       document.getElementById(id).classList.remove('hidden');
     }
 
-    // Кнопка "Вступить"
     function goToPayment() {
       tg.HapticFeedback?.impactOccurred('medium');
       tg.openTelegramLink(PAYMENT_BOT);
     }
 
-    // Проверка подписки
+    function openSeason(n) {
+      tg.HapticFeedback?.impactOccurred('light');
+      tg.showAlert('Сезон ' + n + ' скоро будет доступен.');
+    }
+
     async function checkAccess() {
       if (!user?.id) {
         showScreen('locked');
@@ -203,3 +201,10 @@
         }
       } catch (e) {
         showScreen('locked');
+      }
+    }
+
+    checkAccess();
+  </script>
+</body>
+</html>
