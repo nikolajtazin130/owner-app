@@ -14,11 +14,7 @@
       --accent: #c8a86b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      padding: 20px 16px 90px; -webkit-tap-highlight-color: transparent;
-    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px 16px 90px; -webkit-tap-highlight-color: transparent; }
     .logo { text-align:center; letter-spacing:6px; font-weight:700; font-size:26px; color:var(--accent); margin-bottom:4px; }
     .subtitle { text-align:center; color:var(--hint); font-size:13px; margin-bottom:24px; }
     .section-title { font-size:14px; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin:24px 4px 12px; }
@@ -30,7 +26,6 @@
     .card.locked { opacity:0.55; }
     .card.locked .badge { color:var(--hint); border-color:var(--hint); }
     .card .lock-icon { position:absolute; top:16px; right:18px; font-size:18px; opacity:0.8; }
-    /* быстрые кнопки */
     .quick-row { display:flex; gap:10px; margin-bottom:8px; }
     .quick-btn { flex:1; background:var(--card); border:1px solid rgba(255,255,255,0.05); border-radius:14px; padding:14px; text-align:center; cursor:pointer; transition:transform .1s; }
     .quick-btn:active { transform:scale(0.97); }
@@ -44,7 +39,6 @@
     .back-btn { display:inline-flex; align-items:center; gap:6px; color:var(--accent); background:none; border:none; font-size:15px; cursor:pointer; margin-bottom:16px; padding:4px 0; }
     .season-header { font-size:22px; font-weight:700; margin-bottom:4px; }
     .season-sub { font-size:13px; color:var(--hint); margin-bottom:20px; }
-    .footer { text-align:center; color:var(--hint); font-size:12px; margin-top:32px; }
     .center-screen { min-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 10px; }
     .lock-title { font-size:20px; font-weight:700; margin-bottom:12px; }
     .lock-text { font-size:14px; color:var(--hint); line-height:1.5; margin-bottom:28px; max-width:300px; }
@@ -56,7 +50,6 @@
     .empty { color:var(--hint); text-align:center; padding:40px 0; line-height:1.5; }
     .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--card); color:var(--text); border:1px solid rgba(255,255,255,0.1); padding:14px 22px; border-radius:14px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:100; }
     .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-    /* === ПРОФИЛЬ === */
     .profile-top { display:flex; flex-direction:column; align-items:center; margin-bottom:24px; }
     .avatar { width:80px; height:80px; border-radius:50%; background:var(--card); border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:32px; color:var(--accent); margin-bottom:12px; overflow:hidden; }
     .avatar img { width:100%; height:100%; object-fit:cover; }
@@ -71,7 +64,6 @@
     .ach-ico { font-size:26px; }
     .ach-info h4 { font-size:15px; margin-bottom:2px; }
     .ach-info p { font-size:12px; color:var(--hint); }
-    /* === ТАБ-БАР === */
     .tabbar { position:fixed; bottom:0; left:0; right:0; height:64px; background:var(--card); border-top:1px solid rgba(255,255,255,0.07); display:flex; z-index:50; }
     .tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; color:var(--hint); transition:color .15s; }
     .tab .t-ico { font-size:21px; }
@@ -94,10 +86,7 @@
     <button class="join-btn" onclick="goToPayment()">Вступить в Triumph Owner</button>
   </div>
 
-  <!-- ГЛАВНЫЙ КОНТЕЙНЕР С ВКЛАДКАМИ -->
   <div id="app" class="hidden">
-
-    <!-- ВКЛАДКА: СЕЗОНЫ -->
     <div id="tab-seasons" class="tab-page">
       <div class="logo">TRIUMPH OWNER</div>
       <div class="subtitle">Закрытый мужской канал</div>
@@ -107,15 +96,12 @@
       </div>
       <div class="section-title">Сезоны</div>
       <div id="seasons-list"></div>
-
-      <!-- БИБЛИОТЕКА (под сезонами) -->
       <div class="section-title">Библиотека</div>
       <div class="card" onclick="openLibrary('podcasts.json','🎙️ Подкасты','Аудио-разборы')"><span class="badge">🎙️ Аудио</span><h3>Подкасты</h3><p>Разборы, интервью, беседы</p></div>
       <div class="card" onclick="openLibrary('videos.json','🎬 Видео','Разборы и лекции')"><span class="badge">🎬 Видео</span><h3>Видео</h3><p>Разборы и лекции</p></div>
       <div class="card" onclick="openLibrary('books.json','📚 Книги','Рекомендованное чтение')"><span class="badge">📚 Чтение</span><h3>Книги</h3><p>Рекомендованная литература</p></div>
     </div>
 
-    <!-- ВКЛАДКА: ОПРОСЫ -->
     <div id="tab-polls" class="tab-page hidden">
       <div class="logo">TRIUMPH OWNER</div>
       <div class="subtitle">Опросы и тесты</div>
@@ -123,7 +109,6 @@
       <div id="polls-list"></div>
     </div>
 
-    <!-- ВКЛАДКА: ПРОФИЛЬ -->
     <div id="tab-profile" class="tab-page hidden">
       <div class="profile-top">
         <div class="avatar" id="avatar">👤</div>
@@ -132,17 +117,13 @@
       </div>
       <div class="stat-grid">
         <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
-        <div class="stat-box"><div class="val">0</div><div class="lbl">Опросов пройдено</div></div>
-        <div class="stat-box"><div class="val">—</div><div class="lbl">Эффективность</div></div>
+        <div class="stat-box"><div class="val" id="polls-done">0</div><div class="lbl">Опросов пройдено</div></div>
+        <div class="stat-box"><div class="val" id="awards-count">0</div><div class="lbl">Наград</div></div>
       </div>
       <div class="section-title">Достижения</div>
-      <div class="ach-item off"><div class="ach-ico">🎖️</div><div class="ach-info"><h4>С нами больше года</h4><p>Скоро — как только пройдёт время</p></div></div>
-      <div class="ach-item off"><div class="ach-ico">📊</div><div class="ach-info"><h4>Прошёл 15 опросов</h4><p>Скоро — проходи опросы</p></div></div>
-      <div class="ach-item off"><div class="ach-ico">🏅</div><div class="ach-info"><h4>Выполнил 30 заданий</h4><p>Скоро — выполняй задания</p></div></div>
-      <div class="empty" style="padding:20px 0;font-size:12px;">Личная статистика и живые достижения появятся в следующем обновлении 🔜</div>
+      <div id="awards-list"><div class="empty" style="padding:20px 0;font-size:12px;">Награды появятся здесь 🔜</div></div>
     </div>
 
-    <!-- ТАБ-БАР -->
     <div class="tabbar">
       <div class="tab active" data-tab="seasons" onclick="switchTab('seasons')"><div class="t-ico">📚</div><div class="t-lbl">Сезоны</div></div>
       <div class="tab" data-tab="polls" onclick="switchTab('polls')"><div class="t-ico">📊</div><div class="t-lbl">Опросы</div></div>
@@ -150,7 +131,6 @@
     </div>
   </div>
 
-  <!-- ЭКРАН СЕЗОНА / БИБЛИОТЕКИ (поверх всего) -->
   <div id="season-view" class="hidden">
     <button class="back-btn" onclick="backToApp()">← Назад</button>
     <div class="season-header" id="season-title"></div>
@@ -164,22 +144,19 @@
     const tg = window.Telegram.WebApp;
     tg.ready(); tg.expand();
 
-    // === НАСТРОЙКИ ===
     const WORKER_URL   = "https://subscription-check.nikolajtazin130.workers.dev/";
     const PAYMENT_BOT  = "https://t.me/TriumphOwnerBot";
     const CHANNEL_BASE = "https://t.me/c/3214991403/";
-    const CHAT_URL     = "https://t.me/TriumphOwnerBot";   // ← вставь ссылку на чат клуба
-    const RULES_URL    = "";                                // ← вставь ссылку на правила (или пост)
+    const CHAT_URL     = "https://t.me/TriumphOwnerBot";
+    const RULES_URL    = "";
     const DATA_PATH    = "data/";
-    // ==================
 
     const user = tg.initDataUnsafe?.user;
     let seasonsCache = null;
     let pollsCache = null;
 
     function showScreen(id) {
-      ['loading','locked','app','season-view'].forEach(s =>
-        document.getElementById(s).classList.add('hidden'));
+      ['loading','locked','app','season-view'].forEach(s => document.getElementById(s).classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
       window.scrollTo(0, 0);
     }
@@ -262,7 +239,6 @@
       } catch (e) { listEl.innerHTML = '<div class="empty">Не удалось загрузить. Попробуй позже.</div>'; }
     }
 
-    // === БИБЛИОТЕКА ===
     async function openLibrary(file, title, sub) {
       tg.HapticFeedback?.impactOccurred('light');
       document.getElementById('season-title').textContent = title;
@@ -286,7 +262,27 @@
       if (user?.photo_url) document.getElementById('avatar').innerHTML = '<img src="' + user.photo_url + '" alt="">';
     }
 
-        async function checkAccess() {
+    function renderProfileStats(profile) {
+      if (!profile) return;
+      // опросов пройдено = сумма всех прохождений
+      let pollsDone = 0;
+      if (profile.results) {
+        for (const k in profile.results) pollsDone += profile.results[k].length;
+      }
+      document.getElementById('polls-done').textContent = pollsDone;
+
+      // награды
+      const awards = profile.awards || [];
+      document.getElementById('awards-count').textContent = awards.length;
+      const box = document.getElementById('awards-list');
+      if (awards.length) {
+        box.innerHTML = awards.map(a =>
+          `<div class="ach-item"><div class="ach-ico">🏅</div><div class="ach-info"><h4>${a.title}</h4><p>Награда получена</p></div></div>`
+        ).join('');
+      }
+    }
+
+    async function checkAccess() {
       if (!user?.id) { showScreen('locked'); return; }
       try {
         const res = await fetch(WORKER_URL + "?user_id=" + user.id);
@@ -296,15 +292,14 @@
           renderSeasons(seasons);
           fillProfile();
 
-          // счётчик дней — теперь берём из profile.first_seen
           const firstSeen = data.profile?.first_seen;
           if (firstSeen) {
             const days = Math.floor((Date.now() - Number(firstSeen)) / 86400000);
             document.getElementById('days-count').textContent = days;
           }
 
-          // сохраняем профиль в память (пригодится дальше)
           window.PROFILE = data.profile;
+          renderProfileStats(data.profile);
 
           showScreen('app');
         } else { showScreen('locked'); }
