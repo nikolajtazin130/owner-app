@@ -17,20 +17,25 @@
     body {
       background: var(--bg); color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      padding: 20px 16px 40px; -webkit-tap-highlight-color: transparent;
+      padding: 20px 16px 90px; -webkit-tap-highlight-color: transparent;
     }
     .logo { text-align:center; letter-spacing:6px; font-weight:700; font-size:26px; color:var(--accent); margin-bottom:4px; }
-    .subtitle { text-align:center; color:var(--hint); font-size:13px; margin-bottom:28px; }
+    .subtitle { text-align:center; color:var(--hint); font-size:13px; margin-bottom:24px; }
     .section-title { font-size:14px; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin:24px 4px 12px; }
     .card { background:var(--card); border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:transform .1s; position:relative; }
     .card:active { transform:scale(0.98); }
     .card h3 { font-size:17px; margin-bottom:6px; }
     .card p { font-size:13px; color:var(--hint); line-height:1.4; }
     .badge { display:inline-block; font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:2px 10px; margin-bottom:10px; }
-    /* === ЗАКРЫТЫЙ СЕЗОН === */
     .card.locked { opacity:0.55; }
     .card.locked .badge { color:var(--hint); border-color:var(--hint); }
     .card .lock-icon { position:absolute; top:16px; right:18px; font-size:18px; opacity:0.8; }
+    /* быстрые кнопки */
+    .quick-row { display:flex; gap:10px; margin-bottom:8px; }
+    .quick-btn { flex:1; background:var(--card); border:1px solid rgba(255,255,255,0.05); border-radius:14px; padding:14px; text-align:center; cursor:pointer; transition:transform .1s; }
+    .quick-btn:active { transform:scale(0.97); }
+    .quick-btn .ico { font-size:20px; margin-bottom:4px; }
+    .quick-btn .lbl { font-size:12px; color:var(--text); }
     .lesson { background:var(--card); border-radius:14px; padding:16px; margin-bottom:10px; border:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:transform .1s; display:flex; align-items:flex-start; gap:12px; }
     .lesson:active { transform:scale(0.98); }
     .lesson .num { color:var(--accent); font-weight:700; font-size:14px; min-width:24px; padding-top:2px; }
@@ -48,10 +53,30 @@
     .spinner { width:32px; height:32px; border:3px solid rgba(255,255,255,0.15); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
     .hidden { display:none; }
-    .empty { color:var(--hint); text-align:center; padding:40px 0; }
-    /* всплывающее уведомление */
-    .toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--card); color:var(--text); border:1px solid rgba(255,255,255,0.1); padding:14px 22px; border-radius:14px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:100; }
+    .empty { color:var(--hint); text-align:center; padding:40px 0; line-height:1.5; }
+    .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--card); color:var(--text); border:1px solid rgba(255,255,255,0.1); padding:14px 22px; border-radius:14px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:100; }
     .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    /* === ПРОФИЛЬ === */
+    .profile-top { display:flex; flex-direction:column; align-items:center; margin-bottom:24px; }
+    .avatar { width:80px; height:80px; border-radius:50%; background:var(--card); border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:32px; color:var(--accent); margin-bottom:12px; overflow:hidden; }
+    .avatar img { width:100%; height:100%; object-fit:cover; }
+    .profile-name { font-size:20px; font-weight:700; margin-bottom:4px; }
+    .profile-status { font-size:13px; color:var(--accent); }
+    .stat-grid { display:flex; gap:10px; margin-bottom:8px; }
+    .stat-box { flex:1; background:var(--card); border-radius:14px; padding:16px 10px; text-align:center; border:1px solid rgba(255,255,255,0.05); }
+    .stat-box .val { font-size:22px; font-weight:700; color:var(--accent); }
+    .stat-box .lbl { font-size:11px; color:var(--hint); margin-top:4px; }
+    .ach-item { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:14px; border:1px solid rgba(255,255,255,0.05); }
+    .ach-item.off { opacity:0.4; }
+    .ach-ico { font-size:26px; }
+    .ach-info h4 { font-size:15px; margin-bottom:2px; }
+    .ach-info p { font-size:12px; color:var(--hint); }
+    /* === ТАБ-БАР === */
+    .tabbar { position:fixed; bottom:0; left:0; right:0; height:64px; background:var(--card); border-top:1px solid rgba(255,255,255,0.07); display:flex; z-index:50; }
+    .tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; color:var(--hint); transition:color .15s; }
+    .tab .t-ico { font-size:21px; }
+    .tab .t-lbl { font-size:10px; }
+    .tab.active { color:var(--accent); }
   </style>
 </head>
 <body>
@@ -69,20 +94,62 @@
     <button class="join-btn" onclick="goToPayment()">Вступить в Triumph Owner</button>
   </div>
 
-  <div id="content" class="hidden">
-    <div class="logo">TRIUMPH OWNER</div>
-    <div class="subtitle">Закрытый мужской канал</div>
-    <div class="section-title">Сезоны</div>
-    <div id="seasons-list"></div>
-    <div class="footer" id="hello">OWNER · v0.3</div>
+  <!-- ГЛАВНЫЙ КОНТЕЙНЕР С ВКЛАДКАМИ -->
+  <div id="app" class="hidden">
+
+    <!-- ВКЛАДКА: СЕЗОНЫ -->
+    <div id="tab-seasons" class="tab-page">
+      <div class="logo">TRIUMPH OWNER</div>
+      <div class="subtitle">Закрытый мужской канал</div>
+      <div class="quick-row">
+        <div class="quick-btn" onclick="openRules()"><div class="ico">📜</div><div class="lbl">Правила</div></div>
+        <div class="quick-btn" onclick="openChat()"><div class="ico">💬</div><div class="lbl">Чат клуба</div></div>
+      </div>
+      <div class="section-title">Сезоны</div>
+      <div id="seasons-list"></div>
+    </div>
+
+    <!-- ВКЛАДКА: ОПРОСЫ -->
+    <div id="tab-polls" class="tab-page hidden">
+      <div class="logo">TRIUMPH OWNER</div>
+      <div class="subtitle">Опросы и тесты</div>
+      <div class="section-title">Доступные опросы</div>
+      <div id="polls-list"></div>
+    </div>
+
+    <!-- ВКЛАДКА: ПРОФИЛЬ -->
+    <div id="tab-profile" class="tab-page hidden">
+      <div class="profile-top">
+        <div class="avatar" id="avatar">👤</div>
+        <div class="profile-name" id="p-name">Участник</div>
+        <div class="profile-status">Участник клуба OWNER</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="val">1</div><div class="lbl">Сезон открыт</div></div>
+        <div class="stat-box"><div class="val">0</div><div class="lbl">Опросов пройдено</div></div>
+        <div class="stat-box"><div class="val">—</div><div class="lbl">Эффективность</div></div>
+      </div>
+      <div class="section-title">Достижения</div>
+      <div class="ach-item off"><div class="ach-ico">🎖️</div><div class="ach-info"><h4>С нами больше года</h4><p>Скоро — как только пройдёт время</p></div></div>
+      <div class="ach-item off"><div class="ach-ico">📊</div><div class="ach-info"><h4>Прошёл 15 опросов</h4><p>Скоро — проходи опросы</p></div></div>
+      <div class="ach-item off"><div class="ach-ico">🏅</div><div class="ach-info"><h4>Выполнил 30 заданий</h4><p>Скоро — выполняй задания</p></div></div>
+      <div class="empty" style="padding:20px 0;font-size:12px;">Личная статистика и живые достижения появятся в следующем обновлении 🔜</div>
+    </div>
+
+    <!-- ТАБ-БАР -->
+    <div class="tabbar">
+      <div class="tab active" data-tab="seasons" onclick="switchTab('seasons')"><div class="t-ico">📚</div><div class="t-lbl">Сезоны</div></div>
+      <div class="tab" data-tab="polls" onclick="switchTab('polls')"><div class="t-ico">📊</div><div class="t-lbl">Опросы</div></div>
+      <div class="tab" data-tab="profile" onclick="switchTab('profile')"><div class="t-ico">🏆</div><div class="t-lbl">Профиль</div></div>
+    </div>
   </div>
 
+  <!-- ЭКРАН СЕЗОНА (поверх всего) -->
   <div id="season-view" class="hidden">
-    <button class="back-btn" onclick="backToMain()">← Назад</button>
+    <button class="back-btn" onclick="backToApp()">← Назад</button>
     <div class="season-header" id="season-title"></div>
     <div class="season-sub" id="season-sub"></div>
     <div id="lessons-list"></div>
-    <div class="footer">OWNER · v0.3</div>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -92,33 +159,45 @@
     tg.ready(); tg.expand();
 
     // === НАСТРОЙКИ ===
-    const WORKER_URL  = "https://subscription-check.nikolajtazin130.workers.dev/";
-    const PAYMENT_BOT = "https://t.me/TriumphOwnerBot";
+    const WORKER_URL   = "https://subscription-check.nikolajtazin130.workers.dev/";
+    const PAYMENT_BOT  = "https://t.me/TriumphOwnerBot";
     const CHANNEL_BASE = "https://t.me/c/3214991403/";
-    const DATA_PATH = "data/";
+    const CHAT_URL     = "https://t.me/TriumphOwnerBot";   // ← вставь ссылку на чат клуба
+    const RULES_URL    = "";                                // ← вставь ссылку на правила (или пост)
+    const DATA_PATH    = "data/";
     // ==================
 
     const user = tg.initDataUnsafe?.user;
     let seasonsCache = null;
+    let pollsCache = null;
 
     function showScreen(id) {
-      ['loading','locked','content','season-view'].forEach(s =>
+      ['loading','locked','app','season-view'].forEach(s =>
         document.getElementById(s).classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
       window.scrollTo(0, 0);
     }
 
-    function goToPayment() {
-      tg.HapticFeedback?.impactOccurred('medium');
-      tg.openTelegramLink(PAYMENT_BOT);
+    function switchTab(name) {
+      tg.HapticFeedback?.impactOccurred('light');
+      ['seasons','polls','profile'].forEach(t => {
+        document.getElementById('tab-' + t).classList.add('hidden');
+        document.querySelector('.tab[data-tab="'+t+'"]').classList.remove('active');
+      });
+      document.getElementById('tab-' + name).classList.remove('hidden');
+      document.querySelector('.tab[data-tab="'+name+'"]').classList.add('active');
+      window.scrollTo(0, 0);
+      if (name === 'polls' && !pollsCache) loadPolls();
     }
 
-    // всплывающее сообщение
+    function goToPayment() { tg.HapticFeedback?.impactOccurred('medium'); tg.openTelegramLink(PAYMENT_BOT); }
+    function openChat() { tg.HapticFeedback?.impactOccurred('light'); CHAT_URL ? tg.openTelegramLink(CHAT_URL) : showToast('Ссылка на чат скоро появится'); }
+    function openRules() { tg.HapticFeedback?.impactOccurred('light'); RULES_URL ? tg.openTelegramLink(RULES_URL) : showToast('Правила скоро появятся'); }
+
     let toastTimer = null;
     function showToast(msg) {
       const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
+      t.textContent = msg; t.classList.add('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
     }
@@ -134,31 +213,31 @@
       const list = document.getElementById('seasons-list');
       list.innerHTML = seasons.map((s, i) => {
         if (s.locked) {
-          return `
-            <div class="card locked" onclick="lockedTap()">
-              <span class="lock-icon">🔒</span>
-              <span class="badge">${s.badge}</span>
-              <h3>${s.title}</h3>
-              <p>${s.desc}</p>
-            </div>`;
+          return `<div class="card locked" onclick="lockedTap()"><span class="lock-icon">🔒</span><span class="badge">${s.badge}</span><h3>${s.title}</h3><p>${s.desc}</p></div>`;
         }
-        return `
-          <div class="card" onclick="openSeasonByIndex(${i})">
-            <span class="badge">${s.badge}</span>
-            <h3>${s.title}</h3>
-            <p>${s.desc}</p>
-          </div>`;
+        return `<div class="card" onclick="openSeasonByIndex(${i})"><span class="badge">${s.badge}</span><h3>${s.title}</h3><p>${s.desc}</p></div>`;
       }).join('');
     }
 
-    function lockedTap() {
-      tg.HapticFeedback?.notificationOccurred?.('warning');
-      showToast('🔒 Сезон ещё закрыт. Скоро откроется.');
+    function lockedTap() { tg.HapticFeedback?.notificationOccurred?.('warning'); showToast('🔒 Сезон ещё закрыт. Скоро откроется.'); }
+    function openSeasonByIndex(i) { const s = seasonsCache[i]; openSeason(s.file, s.title, s.sub); }
+
+    async function loadPolls() {
+      const list = document.getElementById('polls-list');
+      list.innerHTML = '<div class="empty">Загрузка…</div>';
+      try {
+        const res = await fetch(DATA_PATH + "polls.json?v=" + Date.now());
+        pollsCache = await res.json();
+        if (!pollsCache.length) { list.innerHTML = '<div class="empty">Опросы скоро появятся 🔜</div>'; return; }
+        list.innerHTML = pollsCache.map((p, i) => `<div class="card" onclick="openPoll(${i})"><span class="badge">${p.badge}</span><h3>${p.title}</h3><p>${p.desc}</p></div>`).join('');
+      } catch (e) { list.innerHTML = '<div class="empty">Опросы скоро появятся 🔜</div>'; }
     }
 
-    function openSeasonByIndex(i) {
-      const s = seasonsCache[i];
-      openSeason(s.file, s.title, s.sub);
+    function openPoll(i) {
+      tg.HapticFeedback?.impactOccurred('light');
+      const p = pollsCache[i];
+      if (p.url) { tg.openLink ? tg.openLink(p.url) : window.open(p.url); }
+      else showToast('Этот опрос скоро откроется');
     }
 
     async function openSeason(file, title, sub) {
@@ -168,32 +247,21 @@
       const listEl = document.getElementById('lessons-list');
       listEl.innerHTML = '<div class="empty">Загрузка…</div>';
       showScreen('season-view');
-
       if (!file) { listEl.innerHTML = '<div class="empty">Материалы скоро появятся.</div>'; return; }
-
       try {
         const res = await fetch(DATA_PATH + file + "?v=" + Date.now());
         const lessons = await res.json();
         if (!lessons.length) { listEl.innerHTML = '<div class="empty">Материалы скоро появятся.</div>'; return; }
-        listEl.innerHTML = lessons.map((les, i) => `
-          <div class="lesson" onclick="openPost(${les.id})">
-            <div class="num">${i + 1}</div>
-            <div class="info"><h4>${les.t}</h4><p>${les.d}</p></div>
-          </div>
-        `).join('');
-      } catch (e) {
-        listEl.innerHTML = '<div class="empty">Не удалось загрузить. Попробуй позже.</div>';
-      }
+        listEl.innerHTML = lessons.map((les, i) => `<div class="lesson" onclick="openPost(${les.id})"><div class="num">${i + 1}</div><div class="info"><h4>${les.t}</h4><p>${les.d}</p></div></div>`).join('');
+      } catch (e) { listEl.innerHTML = '<div class="empty">Не удалось загрузить. Попробуй позже.</div>'; }
     }
 
-    function openPost(postId) {
-      tg.HapticFeedback?.impactOccurred('light');
-      tg.openTelegramLink(CHANNEL_BASE + postId);
-    }
+    function openPost(postId) { tg.HapticFeedback?.impactOccurred('light'); tg.openTelegramLink(CHANNEL_BASE + postId); }
+    function backToApp() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); }
 
-    function backToMain() {
-      tg.HapticFeedback?.impactOccurred('light');
-      showScreen('content');
+    function fillProfile() {
+      if (user?.first_name) document.getElementById('p-name').textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+      if (user?.photo_url) document.getElementById('avatar').innerHTML = '<img src="' + user.photo_url + '" alt="">';
     }
 
     async function checkAccess() {
@@ -202,18 +270,12 @@
         const res = await fetch(WORKER_URL + "?user_id=" + user.id);
         const data = await res.json();
         if (data.ok && data.subscribed) {
-          if (user?.first_name) {
-            document.getElementById('hello').textContent = 'Привет, ' + user.first_name + ' · OWNER v0.3';
-          }
           const seasons = await loadSeasons();
           renderSeasons(seasons);
-          showScreen('content');
-        } else {
-          showScreen('locked');
-        }
-      } catch (e) {
-        showScreen('locked');
-      }
+          fillProfile();
+          showScreen('app');
+        } else { showScreen('locked'); }
+      } catch (e) { showScreen('locked'); }
     }
 
     checkAccess();
