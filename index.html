@@ -669,11 +669,6 @@
 
     async function toggleReaction(emoji) {
       if (!currentTargetId) return;
-      // нельзя лайкать самого себя
-      if (String(currentTargetId) === String(user.id)) {
-        showToast('Себе реакции не ставим 😉');
-        return;
-      }
       tg.HapticFeedback?.impactOccurred('light');
       try {
         const res = await fetch(WORKER_URL + "?action=toggle_reaction&user_id=" + user.id, {
