@@ -77,6 +77,10 @@
     .result-title { font-size:24px; font-weight:700; margin-bottom:12px; }
     .result-score { font-size:16px; color:var(--accent); margin-bottom:16px; }
     .result-text { font-size:15px; color:var(--hint); line-height:1.5; }
+    .hist-item { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:14px; border:1px solid rgba(255,255,255,0.05); }
+    .hist-score { font-size:22px; font-weight:700; color:var(--accent); min-width:44px; text-align:center; }
+    .hist-info h4 { font-size:15px; margin-bottom:2px; line-height:1.3; }
+    .hist-info p { font-size:12px; color:var(--hint); }
   </style>
 </head>
 <body>
@@ -244,8 +248,50 @@
         currentSurvey = await res.json();
         currentQ = 0; currentScore = 0;
         showScreen('survey-view');
-        renderQuestion();
+        renderSurveyIntro();
       } catch (e) { showToast('Опрос временно недоступен'); }
+    }
+
+    function renderSurveyIntro() {
+      const s = currentSurvey;
+      document.getElementById('survey-title').textContent = s.title;
+      document.getElementById('survey-progress').textContent = 'История прохождений';
+
+      const history = (window.PROFILE?.results?.[s.id]) || [];
+      let historyHtml = '';
+
+      if (history.length) {
+        const rows = history.slice().reverse().map(item => {
+          const d = new Date(item.date);
+          const dateStr = d.toLocaleDateString('ru-RU') + ' ' +
+                          d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+          const total = item.scores?.total ?? '—';
+          const title = item.scores?.result || '';
+          return `<div class="hist-item">
+                    <div class="hist-score">${total}</div>
+                    <div class="hist-info">
+                      <h4>${title}</h4>
+                      <p>${dateStr}</p>
+                    </div>
+                  </div>`;
+        }).join('');
+        historyHtml = `<div class="section-title" style="margin-top:0">Прошлые результаты</div>${rows}`;
+      } else {
+        historyHtml = `<div class="empty" style="padding:20px 0;font-size:13px;">Ты ещё не проходил этот опрос</div>`;
+      }
+
+      document.getElementById('survey-body').innerHTML =
+        historyHtml +
+        `<button class="join-btn" style="margin-top:20px;width:100%" onclick="startSurvey()">
+           ${history.length ? 'Пройти заново' : 'Начать опрос'}
+         </button>`;
+      window.scrollTo(0, 0);
+    }
+
+    function startSurvey() {
+      tg.HapticFeedback?.impactOccurred('medium');
+      currentQ = 0; currentScore = 0;
+      renderQuestion();
     }
 
     function renderQuestion() {
@@ -270,7 +316,7 @@
       }
     }
 
-        function showResult() {
+    function showResult() {
       const s = currentSurvey;
       const r = s.results.find(x => currentScore >= x.min) || s.results[s.results.length - 1];
       document.getElementById('survey-progress').textContent = 'Результат';
@@ -304,7 +350,7 @@
       }
     }
 
-    function finishSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
+        function finishSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
     function backFromSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
 
     async function openSeason(file, title, sub) {
@@ -341,7 +387,7 @@
     function openPost(postId) { tg.HapticFeedback?.impactOccurred('light'); tg.openTelegramLink(CHANNEL_BASE + postId); }
     function backToApp() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); }
 
-        function fillProfile() {
+    function fillProfile() {
       if (user?.first_name) document.getElementById('p-name').textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
       if (user?.photo_url) document.getElementById('avatar').innerHTML = '<img src="' + user.photo_url + '" alt="">';
     }
