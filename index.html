@@ -286,7 +286,7 @@
       if (user?.photo_url) document.getElementById('avatar').innerHTML = '<img src="' + user.photo_url + '" alt="">';
     }
 
-    async function checkAccess() {
+        async function checkAccess() {
       if (!user?.id) { showScreen('locked'); return; }
       try {
         const res = await fetch(WORKER_URL + "?user_id=" + user.id);
@@ -295,10 +295,17 @@
           const seasons = await loadSeasons();
           renderSeasons(seasons);
           fillProfile();
-          if (data.first_seen) {
-            const days = Math.floor((Date.now() - Number(data.first_seen)) / 86400000);
+
+          // счётчик дней — теперь берём из profile.first_seen
+          const firstSeen = data.profile?.first_seen;
+          if (firstSeen) {
+            const days = Math.floor((Date.now() - Number(firstSeen)) / 86400000);
             document.getElementById('days-count').textContent = days;
           }
+
+          // сохраняем профиль в память (пригодится дальше)
+          window.PROFILE = data.profile;
+
           showScreen('app');
         } else { showScreen('locked'); }
       } catch (e) { showScreen('locked'); }
