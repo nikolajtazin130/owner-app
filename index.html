@@ -270,7 +270,7 @@
       }
     }
 
-    function showResult() {
+        function showResult() {
       const s = currentSurvey;
       const r = s.results.find(x => currentScore >= x.min) || s.results[s.results.length - 1];
       document.getElementById('survey-progress').textContent = 'Результат';
@@ -282,6 +282,26 @@
            <button class="join-btn" style="margin-top:24px" onclick="finishSurvey()">Готово</button>
          </div>`;
       tg.HapticFeedback?.notificationOccurred?.('success');
+
+      // === сохраняем результат на сервере ===
+      if (user?.id && currentSurvey?.id) {
+        fetch(WORKER_URL + "?action=save_result&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            survey_id: currentSurvey.id,
+            scores: { total: currentScore, result: r.title }
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok && data.profile) {
+            window.PROFILE = data.profile;
+            renderProfileStats(data.profile);
+          }
+        })
+        .catch(() => {});
+      }
     }
 
     function finishSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
