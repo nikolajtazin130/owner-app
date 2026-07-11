@@ -577,6 +577,7 @@
       document.getElementById('m-days').textContent = '0';
       document.getElementById('m-tasks').textContent = '0';
       document.getElementById('m-awards').innerHTML = '';
+      document.querySelector('#profile-modal .m-avatar').innerHTML = '👤';
       modal.classList.add('show');
       try {
         const res = await fetch(WORKER_URL + "?action=get_public_profile&user_id=" + user.id + "&target_id=" + targetId);
@@ -586,6 +587,9 @@
           return;
         }
         const p = data.profile;
+        document.querySelector('#profile-modal .m-avatar').innerHTML = p.photo
+          ? `<img src="${p.photo}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+          : '👤';
         document.getElementById('m-name').textContent = p.name;
         document.getElementById('m-place').textContent = place ? `${place} место в рейтинге` : '';
         document.getElementById('m-score').textContent = p.score;
