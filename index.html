@@ -486,9 +486,12 @@
       document.getElementById('awards-count').textContent = awards.length;
       const box = document.getElementById('awards-list');
       if (awards.length) {
-        box.innerHTML = awards.map(a => {
+                box.innerHTML = awards.map(a => {
           const info = awardById(a.id) || { emoji: "🏅", title: a.title || "Награда" };
-          return `<div class="ach-item"><div class="ach-ico">${info.emoji}</div><div class="ach-info"><h4>${info.title}</h4><p>Награда получена</p></div></div>`;
+          const dateStr = a.date
+            ? "Получена " + new Date(a.date).toLocaleDateString('ru-RU')
+            : "Награда получена";
+          return `<div class="ach-item"><div class="ach-ico">${info.emoji}</div><div class="ach-info"><h4>${info.title}</h4><p>${dateStr}</p></div></div>`;
         }).join('');
       }
     }
@@ -624,7 +627,8 @@
         document.getElementById('m-awards').innerHTML = aw.length
           ? aw.map(a => {
               const info = awardById(a.id) || { emoji: "🏅", title: a.title || "" };
-              return `<span class="m-award" title="${info.title}">${info.emoji}</span>`;
+              const dateStr = a.date ? " · " + new Date(a.date).toLocaleDateString('ru-RU') : "";
+              return `<span class="m-award" title="${info.title}${dateStr}">${info.emoji}</span>`;
             }).join('')
           : '';
 
