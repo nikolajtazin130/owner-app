@@ -69,6 +69,14 @@
     .tab .t-ico { font-size:21px; }
     .tab .t-lbl { font-size:10px; }
     .tab.active { color:var(--accent); }
+    /* === ОПРОС === */
+    .q-text { font-size:19px; font-weight:600; margin-bottom:20px; line-height:1.4; }
+    .answer { background:var(--card); border:1px solid rgba(255,255,255,0.05); border-radius:14px; padding:16px 18px; margin-bottom:12px; font-size:15px; cursor:pointer; transition:transform .1s, border-color .15s; }
+    .answer:active { transform:scale(0.98); border-color:var(--accent); }
+    .result-box { text-align:center; padding:20px 0; }
+    .result-title { font-size:24px; font-weight:700; margin-bottom:12px; }
+    .result-score { font-size:16px; color:var(--accent); margin-bottom:16px; }
+    .result-text { font-size:15px; color:var(--hint); line-height:1.5; }
   </style>
 </head>
 <body>
@@ -138,6 +146,13 @@
     <div id="lessons-list"></div>
   </div>
 
+  <div id="survey-view" class="hidden">
+    <button class="back-btn" onclick="backFromSurvey()">← Назад</button>
+    <div class="season-header" id="survey-title"></div>
+    <div class="season-sub" id="survey-progress"></div>
+    <div id="survey-body"></div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <script>
@@ -156,7 +171,7 @@
     let pollsCache = null;
 
     function showScreen(id) {
-      ['loading','locked','app','season-view'].forEach(s => document.getElementById(s).classList.add('hidden'));
+      ['loading','locked','app','season-view','survey-view'].forEach(s => document.getElementById(s).classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
       window.scrollTo(0, 0);
     }
@@ -216,12 +231,61 @@
       } catch (e) { list.innerHTML = '<div class="empty">Опросы скоро появятся 🔜</div>'; }
     }
 
-    function openPoll(i) {
+    // === ОПРОС ===
+    let currentSurvey = null;
+    let currentQ = 0;
+    let currentScore = 0;
+
+    async function openPoll(i) {
       tg.HapticFeedback?.impactOccurred('light');
       const p = pollsCache[i];
-      if (p.url) { tg.openLink ? tg.openLink(p.url) : window.open(p.url); }
-      else showToast('Этот опрос скоро откроется');
+      try {
+        const res = await fetch(DATA_PATH + "survey_" + p.id + ".json?v=" + Date.now());
+        currentSurvey = await res.json();
+        currentQ = 0; currentScore = 0;
+        showScreen('survey-view');
+        renderQuestion();
+      } catch (e) { showToast('Опрос временно недоступен'); }
     }
+
+    function renderQuestion() {
+      const s = currentSurvey;
+      const q = s.questions[currentQ];
+      document.getElementById('survey-title').textContent = s.title;
+      document.getElementById('survey-progress').textContent = `Вопрос ${currentQ + 1} из ${s.questions.length}`;
+      const box = document.getElementById('survey-body');
+      box.innerHTML = `<div class="q-text">${q.q}</div>` +
+        q.a.map((ans) => `<div class="answer" onclick="answer(${ans.s})">${ans.t}</div>`).join('');
+      window.scrollTo(0, 0);
+    }
+
+    function answer(score) {
+      tg.HapticFeedback?.impactOccurred('light');
+      currentScore += score;
+      currentQ++;
+      if (currentQ < currentSurvey.questions.length) {
+        renderQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      const s = currentSurvey;
+      const r = s.results.find(x => currentScore >= x.min) || s.results[s.results.length - 1];
+      document.getElementById('survey-progress').textContent = 'Результат';
+      document.getElementById('survey-body').innerHTML =
+        `<div class="result-box">
+           <div class="result-title">${r.title}</div>
+           <div class="result-score">${currentScore} баллов</div>
+           <div class="result-text">${r.text}</div>
+           <button class="join-btn" style="margin-top:24px" onclick="finishSurvey()">Готово</button>
+         </div>`;
+      tg.HapticFeedback?.notificationOccurred?.('success');
+    }
+
+    function finishSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
+    function backFromSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
 
     async function openSeason(file, title, sub) {
       tg.HapticFeedback?.impactOccurred('light');
@@ -257,21 +321,19 @@
     function openPost(postId) { tg.HapticFeedback?.impactOccurred('light'); tg.openTelegramLink(CHANNEL_BASE + postId); }
     function backToApp() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); }
 
-    function fillProfile() {
+        function fillProfile() {
       if (user?.first_name) document.getElementById('p-name').textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
       if (user?.photo_url) document.getElementById('avatar').innerHTML = '<img src="' + user.photo_url + '" alt="">';
     }
 
     function renderProfileStats(profile) {
       if (!profile) return;
-      // опросов пройдено = сумма всех прохождений
       let pollsDone = 0;
       if (profile.results) {
         for (const k in profile.results) pollsDone += profile.results[k].length;
       }
       document.getElementById('polls-done').textContent = pollsDone;
 
-      // награды
       const awards = profile.awards || [];
       document.getElementById('awards-count').textContent = awards.length;
       const box = document.getElementById('awards-list');
