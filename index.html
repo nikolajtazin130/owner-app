@@ -116,6 +116,14 @@
     .m-stats .m-box .l { font-size:10px; color:var(--hint); margin-top:2px; }
     .m-awards { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
     .m-award { font-size:22px; }
+        /* === РЕАКЦИИ === */
+    .react-row { display:flex; gap:10px; justify-content:center; margin:16px 0 4px; }
+    .react-btn { flex:1; max-width:90px; background:var(--bg); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:10px 6px; cursor:pointer; transition:transform .1s, border-color .15s, background .15s; display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .react-btn:active { transform:scale(0.92); }
+    .react-btn .r-emoji { font-size:24px; line-height:1; }
+    .react-btn .r-count { font-size:13px; font-weight:700; color:var(--hint); }
+    .react-btn.active { border-color:var(--accent); background:rgba(200,168,107,0.12); }
+    .react-btn.active .r-count { color:var(--accent); }
   </style>
 </head>
 <body>
@@ -217,7 +225,8 @@
         <div class="m-box"><div class="v" id="m-days">0</div><div class="l">Дней</div></div>
         <div class="m-box"><div class="v" id="m-tasks">0</div><div class="l">Заданий</div></div>
       </div>
-      <div class="m-awards" id="m-awards"></div>
+        <div class="m-awards" id="m-awards"></div>
+      <div class="react-row" id="react-box"></div>
       <div id="owner-panel"></div>
     </div>
   </div>
@@ -602,6 +611,7 @@
       document.getElementById('m-days').textContent = '0';
       document.getElementById('m-tasks').textContent = '0';
       document.getElementById('m-awards').innerHTML = '';
+      document.getElementById('react-box').innerHTML = ''; // 🫶 чистим реакции
       document.getElementById('owner-panel').innerHTML = ''; // чистим панель OWNER
       document.querySelector('#profile-modal .m-avatar').innerHTML = '👤';
       modal.classList.add('show');
@@ -632,11 +642,60 @@
             }).join('')
           : '';
 
+                // 🫶 рисуем кнопки реакций
+        renderReactions(p.reactions || {}, p.my_reactions || []);
+
         // 👑 если это OWNER — показываем панель управления наградами
         if (String(user.id) === String(OWNER_ID)) renderOwnerPanel(aw);
       } catch (e) {
         document.getElementById('m-name').textContent = 'Ошибка загрузки';
       }
+    }
+
+    // 🫶 === РЕАКЦИИ ===
+    const REACTIONS = ["🫶", "👍", "💪"]; // должны совпадать с воркером
+
+    function renderReactions(counts, mine) {
+      const box = document.getElementById('react-box');
+      box.innerHTML = REACTIONS.map(emoji => {
+        const cnt = counts[emoji] || 0;
+        const active = mine.includes(emoji) ? 'active' : '';
+        return `<div class="react-btn ${active}" onclick="toggleReaction('${emoji}')">
+                  <div class="r-emoji">${emoji}</div>
+                  <div class="r-count">${cnt}</div>
+                </div>`;
+      }).join('');
+    }
+
+    async function toggleReaction(emoji) {
+      if (!currentTargetId) return;
+      // нельзя лайкать самого себя
+      if (String(currentTargetId) === String(user.id)) {
+        showToast('Себе реакции не ставим 😉');
+        return;
+      }
+      tg.HapticFeedback?.impactOccurred('light');
+      try {
+        const res = await fetch(WORKER_URL + "?action=toggle_reaction&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_id: currentTargetId, emoji: emoji })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          // обновляем только одну кнопку без перезагрузки профиля
+          const btns = document.querySelectorAll('#react-box .react-btn');
+          btns.forEach(b => {
+            if (b.querySelector('.r-emoji').textContent === emoji) {
+              b.classList.toggle('active', data.active);
+              b.querySelector('.r-count').textContent = data.count;
+            }
+          });
+          if (data.active) showToast(`${emoji} отправлено!`);
+        } else {
+          showToast('Не удалось');
+        }
+      } catch (e) { showToast('Ошибка сети'); }
     }
 
     // 👑 Панель OWNER: выдать / снять награду
