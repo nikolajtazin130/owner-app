@@ -69,44 +69,137 @@
       font-size: 12px;
       margin-top: 32px;
     }
+    /* Экран загрузки и блокировки */
+    .center-screen {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 10px;
+    }
+    .lock-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .lock-text {
+      font-size: 14px;
+      color: var(--hint);
+      line-height: 1.5;
+      margin-bottom: 28px;
+      max-width: 300px;
+    }
+    .join-btn {
+      background: var(--accent);
+      color: #000;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      border: none;
+      border-radius: 14px;
+      padding: 16px 28px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .join-btn:active { transform: scale(0.97); }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(255,255,255,0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div class="logo">OWNER</div>
-  <div class="subtitle">Закрытый мужской клуб</div>
 
-  <div class="section-title">Сезоны</div>
-
-  <div class="card" onclick="openSeason(1)">
-    <span class="badge">Сезон 1</span>
-    <h3>Самостоятельность</h3>
-    <p>Идентичность, вторичные выгоды, мужские страхи. Основа, с которой начинается путь.</p>
+  <!-- ЭКРАН ЗАГРУЗКИ -->
+  <div id="loading" class="center-screen">
+    <div class="spinner"></div>
+    <p style="margin-top:16px;color:var(--hint);font-size:13px;">Проверяем доступ…</p>
   </div>
 
-  <div class="card" onclick="openSeason(2)">
-    <span class="badge">Сезон 2 · идёт сейчас</span>
-    <h3>Проявленность</h3>
-    <p>Механика мужского поведения, паттерны, внутренние зажимы, инициатива.</p>
+  <!-- ЭКРАН БЛОКИРОВКИ (не подписан) -->
+  <div id="locked" class="center-screen hidden">
+    <div class="logo">OWNER</div>
+    <div class="subtitle">Закрытый мужской клуб</div>
+    <div class="lock-title">Доступ только для участников</div>
+    <p class="lock-text">
+      Это приложение доступно только действующим участникам клуба OWNER.
+      Чтобы получить доступ ко всем сезонам, диагностике и практикам — вступай в клуб.
+    </p>
+    <button class="join-btn" onclick="goToPayment()">Вступить в Triumph Owner</button>
   </div>
 
-  <div class="footer" id="hello">OWNER · v0.1</div>
+  <!-- ОСНОВНОЙ КОНТЕНТ (подписан) -->
+  <div id="content" class="hidden">
+    <div class="logo">OWNER</div>
+    <div class="subtitle">Закрытый мужской клуб</div>
+
+    <div class="section-title">Сезоны</div>
+
+    <div class="card" onclick="openSeason(1)">
+      <span class="badge">Сезон 1</span>
+      <h3>Самостоятельность</h3>
+      <p>Идентичность, вторичные выгоды, мужские страхи. Основа, с которой начинается путь.</p>
+    </div>
+
+    <div class="card" onclick="openSeason(2)">
+      <span class="badge">Сезон 2 · идёт сейчас</span>
+      <h3>Проявленность</h3>
+      <p>Механика мужского поведения, паттерны, внутренние зажимы, инициатива.</p>
+    </div>
+
+    <div class="footer" id="hello">OWNER · v0.1</div>
+  </div>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    // Приветствие по имени (данные приходят от Telegram)
+    // === НАСТРОЙКИ ===
+    const WORKER_URL = "https://subscription-check.nikolajtazin130.workers.dev";
+    const PAYMENT_BOT = "https://t.me/TriumphOwnerBot";
+    // ==================
+
     const user = tg.initDataUnsafe?.user;
-    if (user?.first_name) {
-      document.getElementById('hello').textContent = 
-        'Привет, ' + user.first_name + ' · OWNER v0.1';
+
+    // Функция показа нужного экрана
+    function showScreen(id) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('locked').classList.add('hidden');
+      document.getElementById('content').classList.add('hidden');
+      document.getElementById(id).classList.remove('hidden');
     }
 
-    function openSeason(n) {
-      tg.HapticFeedback?.impactOccurred('light');
-      tg.showAlert('Сезон ' + n + ' — оглавление появится на следующем шаге.');
+    // Кнопка "Вступить"
+    function goToPayment() {
+      tg.HapticFeedback?.impactOccurred('medium');
+      tg.openTelegramLink(PAYMENT_BOT);
     }
-  </script>
-</body>
-</html>
+
+    // Проверка подписки
+    async function checkAccess() {
+      if (!user?.id) {
+        showScreen('locked');
+        return;
+      }
+      try {
+        const res = await fetch(WORKER_URL + "?user_id=" + user.id);
+        const data = await res.json();
+        if (data.ok && data.subscribed) {
+          if (user?.first_name) {
+            document.getElementById('hello').textContent =
+              'Привет, ' + user.first_name + ' · OWNER v0.1';
+          }
+          showScreen('content');
+        } else {
+          showScreen('locked');
+        }
+      } catch (e) {
+        showScreen('locked');
