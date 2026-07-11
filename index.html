@@ -218,6 +218,7 @@
         <div class="m-box"><div class="v" id="m-tasks">0</div><div class="l">Заданий</div></div>
       </div>
       <div class="m-awards" id="m-awards"></div>
+      <div id="owner-panel"></div>
     </div>
   </div>
 
@@ -234,6 +235,21 @@
     const CHAT_URL     = "https://t.me/TriumphOwnerBot";
     const RULES_URL    = "";
     const DATA_PATH    = "data/";
+
+        // 🏅 Список всех наград клуба
+    const AWARDS = [
+      { id: "first_step",  emoji: "🌱", title: "Первый шаг" },
+      { id: "newbie",      emoji: "✨", title: "Новичок в деле" },
+      { id: "hooked",      emoji: "🔥", title: "Втянулся" },
+      { id: "master",      emoji: "⚡", title: "Мастер" },
+      { id: "legend",      emoji: "🏆", title: "Легенда" },
+      { id: "loyal",       emoji: "📅", title: "Верный делу" },
+      { id: "streak",      emoji: "🎯", title: "Своя серия" },
+      { id: "friend",      emoji: "🤝", title: "Друг клуба" },
+      { id: "star_month",  emoji: "👑", title: "Звезда месяца" },
+      { id: "founder",     emoji: "🎖️", title: "Основатель" },
+    ];
+    function awardById(id) { return AWARDS.find(a => a.id === id); }
 
     const user = tg.initDataUnsafe?.user;
     let seasonsCache = null;
@@ -470,9 +486,10 @@
       document.getElementById('awards-count').textContent = awards.length;
       const box = document.getElementById('awards-list');
       if (awards.length) {
-        box.innerHTML = awards.map(a =>
-          `<div class="ach-item"><div class="ach-ico">🏅</div><div class="ach-info"><h4>${a.title}</h4><p>Награда получена</p></div></div>`
-        ).join('');
+        box.innerHTML = awards.map(a => {
+          const info = awardById(a.id) || { emoji: "🏅", title: a.title || "Награда" };
+          return `<div class="ach-item"><div class="ach-ico">${info.emoji}</div><div class="ach-info"><h4>${info.title}</h4><p>Награда получена</p></div></div>`;
+        }).join('');
       }
     }
 
@@ -569,8 +586,12 @@
     }
 
         // === ПУБЛИЧНЫЙ ПРОФИЛЬ ===
+            // === ПУБЛИЧНЫЙ ПРОФИЛЬ ===
+    let currentTargetId = null; // 👑 кого сейчас смотрит OWNER
+
     async function openPublicProfile(targetId, place) {
       tg.HapticFeedback?.impactOccurred('light');
+      currentTargetId = targetId;
       const modal = document.getElementById('profile-modal');
       document.getElementById('m-name').textContent = 'Загрузка…';
       document.getElementById('m-place').textContent = '';
@@ -578,6 +599,7 @@
       document.getElementById('m-days').textContent = '0';
       document.getElementById('m-tasks').textContent = '0';
       document.getElementById('m-awards').innerHTML = '';
+      document.getElementById('owner-panel').innerHTML = ''; // чистим панель OWNER
       document.querySelector('#profile-modal .m-avatar').innerHTML = '👤';
       modal.classList.add('show');
       try {
@@ -585,6 +607,8 @@
         const data = await res.json();
         if (!data.ok) {
           document.getElementById('m-name').textContent = 'Профиль скрыт 🔒';
+          // даже если профиль скрыт — OWNER всё равно может управлять наградами
+          if (String(user.id) === String(OWNER_ID)) renderOwnerPanel([]);
           return;
         }
         const p = data.profile;
@@ -598,11 +622,94 @@
         document.getElementById('m-tasks').textContent = p.tasks;
         const aw = p.awards_list || [];
         document.getElementById('m-awards').innerHTML = aw.length
-          ? aw.map(a => `<span class="m-award" title="${a.title || ''}">🏅</span>`).join('')
+          ? aw.map(a => {
+              const info = awardById(a.id) || { emoji: "🏅", title: a.title || "" };
+              return `<span class="m-award" title="${info.title}">${info.emoji}</span>`;
+            }).join('')
           : '';
+
+        // 👑 если это OWNER — показываем панель управления наградами
+        if (String(user.id) === String(OWNER_ID)) renderOwnerPanel(aw);
       } catch (e) {
         document.getElementById('m-name').textContent = 'Ошибка загрузки';
       }
+    }
+
+    // 👑 Панель OWNER: выдать / снять награду
+    function renderOwnerPanel(currentAwards) {
+      const panel = document.getElementById('owner-panel');
+      const ownedIds = (currentAwards || []).map(a => a.id);
+
+      const options = AWARDS.map(a => {
+        const has = ownedIds.includes(a.id);
+        return `<option value="${a.id}">${a.emoji} ${a.title}${has ? ' ✓' : ''}</option>`;
+      }).join('');
+
+      panel.innerHTML = `
+        <div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:18px;padding-top:16px;text-align:left;">
+          <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">👑 Управление наградами</div>
+          <select id="award-select" style="width:100%;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;margin-bottom:10px;">
+            ${options}
+          </select>
+          <div style="display:flex;gap:8px;">
+            <button onclick="giveAward()" style="flex:1;background:var(--accent);color:#000;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">Выдать 🏅</button>
+            <button onclick="takeAward()" style="flex:1;background:#3a1c1c;color:#ff8a8a;border:1px solid #ff8a8a;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">Снять ✕</button>
+          </div>
+        </div>`;
+    }
+
+    // 👑 Выдать награду
+    async function giveAward() {
+      const awardId = document.getElementById('award-select').value;
+      const info = awardById(awardId);
+      tg.HapticFeedback?.impactOccurred('medium');
+      try {
+        const res = await fetch(WORKER_URL + "?action=give_award&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_id: currentTargetId, award_id: awardId })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(`Выдано: ${info.emoji} ${info.title}`);
+          openPublicProfile(currentTargetId, null); // обновляем модалку
+          loadRating();
+        } else if (data.error === "already has") {
+          showToast('⚠️ У участника уже есть эта награда');
+        } else {
+          showToast('Не удалось выдать');
+        }
+      } catch (e) { showToast('Ошибка сети'); }
+    }
+
+    // 👑 Снять награду — С ПОДТВЕРЖДЕНИЕМ
+    function takeAward() {
+      const awardId = document.getElementById('award-select').value;
+      const info = awardById(awardId);
+      tg.HapticFeedback?.impactOccurred('medium');
+      // ✅ подтверждение через нативное окно Telegram
+      tg.showConfirm(`Снять награду «${info.emoji} ${info.title}» у участника?`, (ok) => {
+        if (!ok) return;
+        doTakeAward(awardId, info);
+      });
+    }
+
+    async function doTakeAward(awardId, info) {
+      try {
+        const res = await fetch(WORKER_URL + "?action=take_award&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_id: currentTargetId, award_id: awardId })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(`Снято: ${info.emoji} ${info.title}`);
+          openPublicProfile(currentTargetId, null); // обновляем модалку
+          loadRating();
+        } else {
+          showToast('Не удалось снять');
+        }
+      } catch (e) { showToast('Ошибка сети'); }
     }
 
     function closeProfileModal(e) {
