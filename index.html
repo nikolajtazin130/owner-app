@@ -107,6 +107,12 @@
       </div>
       <div class="section-title">Сезоны</div>
       <div id="seasons-list"></div>
+
+      <!-- БИБЛИОТЕКА (под сезонами) -->
+      <div class="section-title">Библиотека</div>
+      <div class="card" onclick="openLibrary('podcasts.json','🎙️ Подкасты','Аудио-разборы')"><span class="badge">🎙️ Аудио</span><h3>Подкасты</h3><p>Разборы, интервью, беседы</p></div>
+      <div class="card" onclick="openLibrary('videos.json','🎬 Видео','Разборы и лекции')"><span class="badge">🎬 Видео</span><h3>Видео</h3><p>Разборы и лекции</p></div>
+      <div class="card" onclick="openLibrary('books.json','📚 Книги','Рекомендованное чтение')"><span class="badge">📚 Чтение</span><h3>Книги</h3><p>Рекомендованная литература</p></div>
     </div>
 
     <!-- ВКЛАДКА: ОПРОСЫ -->
@@ -144,7 +150,7 @@
     </div>
   </div>
 
-  <!-- ЭКРАН СЕЗОНА (поверх всего) -->
+  <!-- ЭКРАН СЕЗОНА / БИБЛИОТЕКИ (поверх всего) -->
   <div id="season-view" class="hidden">
     <button class="back-btn" onclick="backToApp()">← Назад</button>
     <div class="season-header" id="season-title"></div>
@@ -254,6 +260,22 @@
         if (!lessons.length) { listEl.innerHTML = '<div class="empty">Материалы скоро появятся.</div>'; return; }
         listEl.innerHTML = lessons.map((les, i) => `<div class="lesson" onclick="openPost(${les.id})"><div class="num">${i + 1}</div><div class="info"><h4>${les.t}</h4><p>${les.d}</p></div></div>`).join('');
       } catch (e) { listEl.innerHTML = '<div class="empty">Не удалось загрузить. Попробуй позже.</div>'; }
+    }
+
+    // === БИБЛИОТЕКА ===
+    async function openLibrary(file, title, sub) {
+      tg.HapticFeedback?.impactOccurred('light');
+      document.getElementById('season-title').textContent = title;
+      document.getElementById('season-sub').textContent = sub;
+      const listEl = document.getElementById('lessons-list');
+      listEl.innerHTML = '<div class="empty">Загрузка…</div>';
+      showScreen('season-view');
+      try {
+        const res = await fetch(DATA_PATH + file + "?v=" + Date.now());
+        const items = await res.json();
+        if (!items.length) { listEl.innerHTML = '<div class="empty">Скоро здесь появится контент 🔜</div>'; return; }
+        listEl.innerHTML = items.map((it, i) => `<div class="lesson" onclick="openPost(${it.id})"><div class="num">${i + 1}</div><div class="info"><h4>${it.t}</h4><p>${it.d}</p></div></div>`).join('');
+      } catch (e) { listEl.innerHTML = '<div class="empty">Скоро здесь появится контент 🔜</div>'; }
     }
 
     function openPost(postId) { tg.HapticFeedback?.impactOccurred('light'); tg.openTelegramLink(CHANNEL_BASE + postId); }
