@@ -131,7 +131,7 @@
         <div class="profile-status">Участник клуба OWNER</div>
       </div>
       <div class="stat-grid">
-        <div class="stat-box"><div class="val">1</div><div class="lbl">Сезон открыт</div></div>
+        <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
         <div class="stat-box"><div class="val">0</div><div class="lbl">Опросов пройдено</div></div>
         <div class="stat-box"><div class="val">—</div><div class="lbl">Эффективность</div></div>
       </div>
@@ -295,6 +295,10 @@
           const seasons = await loadSeasons();
           renderSeasons(seasons);
           fillProfile();
+          if (data.first_seen) {
+            const days = Math.floor((Date.now() - Number(data.first_seen)) / 86400000);
+            document.getElementById('days-count').textContent = days;
+          }
           showScreen('app');
         } else { showScreen('locked'); }
       } catch (e) { showScreen('locked'); }
