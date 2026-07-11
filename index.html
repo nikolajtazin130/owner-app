@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OWNER</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: var(--tg-theme-bg-color, #0f0f0f);
+      --text: var(--tg-theme-text-color, #ffffff);
+      --hint: var(--tg-theme-hint-color, #8a8a8a);
+      --card: var(--tg-theme-secondary-bg-color, #1c1c1e);
+      --accent: #c8a86b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px 16px 40px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .logo {
+      text-align: center;
+      letter-spacing: 6px;
+      font-weight: 700;
+      font-size: 26px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--hint);
+      font-size: 13px;
+      margin-bottom: 28px;
+    }
+    .section-title {
+      font-size: 14px;
+      color: var(--hint);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 24px 4px 12px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .card:active { transform: scale(0.98); }
+    .card h3 { font-size: 17px; margin-bottom: 6px; }
+    .card p { font-size: 13px; color: var(--hint); line-height: 1.4; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      padding: 2px 10px;
+      margin-bottom: 10px;
+    }
+    .footer {
+      text-align: center;
+      color: var(--hint);
+      font-size: 12px;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">OWNER</div>
+  <div class="subtitle">Закрытый мужской клуб</div>
+
+  <div class="section-title">Сезоны</div>
+
+  <div class="card" onclick="openSeason(1)">
+    <span class="badge">Сезон 1</span>
+    <h3>Самостоятельность</h3>
+    <p>Идентичность, вторичные выгоды, мужские страхи. Основа, с которой начинается путь.</p>
+  </div>
+
+  <div class="card" onclick="openSeason(2)">
+    <span class="badge">Сезон 2 · идёт сейчас</span>
+    <h3>Проявленность</h3>
+    <p>Механика мужского поведения, паттерны, внутренние зажимы, инициатива.</p>
+  </div>
+
+  <div class="footer" id="hello">OWNER · v0.1</div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // Приветствие по имени (данные приходят от Telegram)
+    const user = tg.initDataUnsafe?.user;
+    if (user?.first_name) {
+      document.getElementById('hello').textContent = 
+        'Привет, ' + user.first_name + ' · OWNER v0.1';
+    }
+
+    function openSeason(n) {
+      tg.HapticFeedback?.impactOccurred('light');
+      tg.showAlert('Сезон ' + n + ' — оглавление появится на следующем шаге.');
+    }
+  </script>
+</body>
+</html>
