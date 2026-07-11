@@ -81,6 +81,27 @@
     .hist-score { font-size:22px; font-weight:700; color:var(--accent); min-width:44px; text-align:center; }
     .hist-info h4 { font-size:15px; margin-bottom:2px; line-height:1.3; }
     .hist-info p { font-size:12px; color:var(--hint); }
+        /* === РЕЙТИНГ === */
+    .rank-me { background:var(--card); border:1px solid var(--accent); border-radius:16px; padding:18px; margin-bottom:16px; text-align:center; }
+    .rank-me .place { font-size:34px; font-weight:700; color:var(--accent); }
+    .rank-me .place span { font-size:16px; color:var(--hint); }
+    .rank-me .score { font-size:14px; color:var(--hint); margin-top:4px; }
+    .rank-row { display:flex; align-items:center; gap:14px; background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.05); }
+    .rank-row.self { border-color:var(--accent); }
+    .rank-row .rk-place { font-size:18px; font-weight:700; min-width:34px; text-align:center; color:var(--hint); }
+    .rank-row.top1 .rk-place { color:#ffd700; }
+    .rank-row.top2 .rk-place { color:#c0c0c0; }
+    .rank-row.top3 .rk-place { color:#cd7f32; }
+    .rank-row .rk-name { flex:1; font-size:15px; }
+    .rank-row .rk-score { font-size:16px; font-weight:700; color:var(--accent); }
+    .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.05); }
+    .toggle-row .t-txt { font-size:14px; }
+    .switch { position:relative; width:48px; height:28px; flex-shrink:0; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; inset:0; background:#444; border-radius:28px; transition:.2s; }
+    .slider:before { content:""; position:absolute; height:22px; width:22px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+    .switch input:checked + .slider { background:var(--accent); }
+    .switch input:checked + .slider:before { transform:translateX(20px); }
   </style>
 </head>
 <body>
@@ -135,13 +156,27 @@
       <div class="section-title">Достижения</div>
       <div id="awards-list"><div class="empty" style="padding:20px 0;font-size:12px;">Награды появятся здесь 🔜</div></div>
     </div>
+        <div id="tab-rating" class="tab-page hidden">
+      <div class="logo">TRIUMPH OWNER</div>
+      <div class="subtitle">Рейтинг участников</div>
+      <div class="toggle-row">
+        <div class="t-txt">Показывать меня в рейтинге</div>
+        <label class="switch">
+          <input type="checkbox" id="public-toggle" onchange="togglePublic()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="rating-me"></div>
+      <div class="section-title">Топ участников</div>
+      <div id="rating-list"><div class="empty">Загрузка…</div></div>
+    </div>
 
-    <div class="tabbar">
+       <div class="tabbar">
       <div class="tab active" data-tab="seasons" onclick="switchTab('seasons')"><div class="t-ico">📚</div><div class="t-lbl">Сезоны</div></div>
-      <div class="tab" data-tab="polls" onclick="switchTab('polls')"><div class="t-ico">📊</div><div class="t-lbl">Опросы</div></div>
+      <div class="tab" data-tab="polls" onclick="switchTab('polls')"><div class="t-ico">⭐️</div><div class="t-lbl">Задания</div></div>
+      <div class="tab" data-tab="rating" onclick="switchTab('rating')"><div class="t-ico">🚀</div><div class="t-lbl">Рейтинг</div></div>
       <div class="tab" data-tab="profile" onclick="switchTab('profile')"><div class="t-ico">🏆</div><div class="t-lbl">Профиль</div></div>
     </div>
-  </div>
 
   <div id="season-view" class="hidden">
     <button class="back-btn" onclick="backToApp()">← Назад</button>
@@ -182,7 +217,7 @@
 
     function switchTab(name) {
       tg.HapticFeedback?.impactOccurred('light');
-      ['seasons','polls','profile'].forEach(t => {
+      ['seasons','polls','rating','profile'].forEach(t => {
         document.getElementById('tab-' + t).classList.add('hidden');
         document.querySelector('.tab[data-tab="'+t+'"]').classList.remove('active');
       });
@@ -190,6 +225,7 @@
       document.querySelector('.tab[data-tab="'+name+'"]').classList.add('active');
       window.scrollTo(0, 0);
       if (name === 'polls' && !pollsCache) loadPolls();
+      if (name === 'rating') loadRating();
     }
 
     function goToPayment() { tg.HapticFeedback?.impactOccurred('medium'); tg.openTelegramLink(PAYMENT_BOT); }
@@ -434,6 +470,73 @@
       } catch (e) { showScreen('locked'); }
     }
 
+        // === РЕЙТИНГ ===
+    async function loadRating() {
+      if (!user?.id) return;
+      const meBox = document.getElementById('rating-me');
+      const listBox = document.getElementById('rating-list');
+      listBox.innerHTML = '<div class="empty">Загрузка…</div>';
+      try {
+        const res = await fetch(WORKER_URL + "?action=get_leaderboard&user_id=" + user.id);
+        const data = await res.json();
+        if (!data.ok) { listBox.innerHTML = '<div class="empty">Не удалось загрузить рейтинг.</div>'; return; }
+
+        // блок "мой результат"
+        if (data.me) {
+          const placeTxt = data.me.place
+            ? `${data.me.place}<span> из ${data.me.total}</span>`
+            : `—<span> вне рейтинга</span>`;
+          meBox.innerHTML =
+            `<div class="rank-me">
+               <div class="place">${placeTxt}</div>
+               <div class="score">${data.me.score} баллов · ${data.me.days} дн. · ${data.me.tasks} опр.</div>
+             </div>`;
+          // выставляем переключатель
+          const toggle = document.getElementById('public-toggle');
+          toggle.checked = (window.PROFILE?.public !== false);
+        }
+
+        // список топа
+        const list = data.leaderboard || [];
+        if (!list.length) {
+          listBox.innerHTML = '<div class="empty">Пока никого в рейтинге 🔜</div>';
+          return;
+        }
+        listBox.innerHTML = list.map(row => {
+          const isSelf = String(row.user_id) === String(user.id);
+          let topClass = '';
+          if (row.place === 1) topClass = 'top1';
+          else if (row.place === 2) topClass = 'top2';
+          else if (row.place === 3) topClass = 'top3';
+          const medal = row.place === 1 ? '🥇' : row.place === 2 ? '🥈' : row.place === 3 ? '🥉' : row.place;
+          return `<div class="rank-row ${topClass} ${isSelf ? 'self' : ''}">
+                    <div class="rk-place">${medal}</div>
+                    <div class="rk-name">${row.name}${isSelf ? ' (ты)' : ''}</div>
+                    <div class="rk-score">${row.score}</div>
+                  </div>`;
+        }).join('');
+      } catch (e) {
+        listBox.innerHTML = '<div class="empty">Ошибка загрузки рейтинга.</div>';
+      }
+    }
+
+    async function togglePublic() {
+      const toggle = document.getElementById('public-toggle');
+      const val = toggle.checked;
+      tg.HapticFeedback?.impactOccurred('light');
+      try {
+        await fetch(WORKER_URL + "?action=toggle_public&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ public: val })
+        });
+        if (window.PROFILE) window.PROFILE.public = val;
+        showToast(val ? 'Ты в рейтинге 🚀' : 'Ты скрыт из рейтинга');
+        loadRating();
+      } catch (e) {
+        showToast('Не удалось сохранить');
+      }
+    }
     checkAccess();
   </script>
 </body>
