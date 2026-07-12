@@ -490,7 +490,11 @@
     }
 
     function openPost(postId) { tg.HapticFeedback?.impactOccurred('light'); tg.openTelegramLink(CHANNEL_BASE + postId); }
-    function backToApp() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); }
+    function backToApp() { 
+      tg.HapticFeedback?.impactOccurred('light'); 
+      showScreen('app'); 
+      switchTab('seasons');   // ← ВОЗВРАЩАЕМ вкладку "Сезоны"
+    }
 
     function fillProfile() {
       if (user?.first_name) document.getElementById('p-name').textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
