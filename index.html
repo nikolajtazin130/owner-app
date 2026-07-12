@@ -265,7 +265,21 @@
     let pollsCache = null;
 
     function showScreen(id) {
+      // прячем всё
       ['loading','locked','app','season-view','survey-view'].forEach(s => document.getElementById(s).classList.add('hidden'));
+
+      if (id === 'season-view' || id === 'survey-view') {
+        // season-view и survey-view лежат ВНУТРИ #app,
+        // поэтому app должен быть виден, но его табы и tabbar — спрятаны
+        document.getElementById('app').classList.remove('hidden');
+        document.querySelectorAll('#app .tab-page').forEach(el => el.classList.add('hidden'));
+        document.querySelector('#app .tabbar').style.display = 'none';
+      } else {
+        // возвращаем tabbar (для 'app')
+        const tabbar = document.querySelector('#app .tabbar');
+        if (tabbar) tabbar.style.display = 'flex';
+      }
+
       document.getElementById(id).classList.remove('hidden');
       window.scrollTo(0, 0);
     }
