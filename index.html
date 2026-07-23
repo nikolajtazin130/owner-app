@@ -212,6 +212,13 @@
       </div>
       <div class="section-title">Достижения</div>
       <div id="awards-list"><div class="empty" style="padding:20px 0;font-size:12px;">Награды появятся здесь 🔜</div></div>
+            <!-- 👑 Виден только OWNER -->
+      <div id="admin-entry" style="display:none;margin-top:24px;">
+        <div class="card" onclick="openAdminUsers()" style="border-color:var(--accent);">
+          <h3>🛠 Админ-панель</h3>
+          <p>Участники · поиск · награды</p>
+        </div>
+      </div>
     </div>
         <div id="tab-rating" class="tab-page hidden">
       <div class="logo">TRIUMPH OWNER</div>
@@ -254,6 +261,16 @@
     <div class="season-header" id="mar-title">Марафон</div>
     <div class="season-sub" id="mar-sub"></div>
     <div id="mar-body"><div class="empty">Загрузка…</div></div>
+  </div>
+
+      <div id="admin-view" class="hidden">
+    <button class="back-btn" onclick="backFromAdmin()">← Назад</button>
+    <div class="season-header">👥 Участники</div>
+    <div class="season-sub" id="admin-count">—</div>
+    <input type="text" id="admin-search" placeholder="🔍 Имя или ID…"
+      oninput="adminSearchDebounced()"
+      style="width:100%;padding:14px;border-radius:14px;background:var(--card);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:15px;margin-bottom:14px;">
+    <div id="admin-list"><div class="empty">Загрузка…</div></div>
   </div>
 
       <div id="profile-modal" class="modal-overlay" onclick="closeProfileModal(event)">
@@ -585,6 +602,10 @@
 
           window.PROFILE = data.profile;
           renderProfileStats(data.profile);
+
+                    if (String(user.id) === String(OWNER_ID)) {
+            document.getElementById('admin-entry').style.display = 'block';
+          }
 
           showScreen('app');
         } else { showScreen('locked'); }
@@ -1190,6 +1211,66 @@
       } catch (e) {}
     }
     // ═══════════ КОНЕЦ МАРАФОНА (фронт) ═══════════
+
+        // ═══════════ 👑 АДМИН-ПАНЕЛЬ: УЧАСТНИКИ ═══════════
+    function openAdminUsers() {
+      tg.HapticFeedback?.impactOccurred('light');
+      // прячем всё как в других экранах
+      document.getElementById('app').classList.remove('hidden');
+      document.querySelectorAll('#app .tab-page').forEach(el => el.classList.add('hidden'));
+      const tb = document.querySelector('#app .tabbar');
+      if (tb) tb.style.display = 'none';
+      document.getElementById('admin-view').classList.remove('hidden');
+      window.scrollTo(0, 0);
+      document.getElementById('admin-search').value = '';
+      loadAdminUsers('');
+    }
+
+    function backFromAdmin() {
+      tg.HapticFeedback?.impactOccurred('light');
+      document.getElementById('admin-view').classList.add('hidden');
+      showScreen('app');
+      switchTab('profile');
+    }
+
+    let adminSearchTimer = null;
+    function adminSearchDebounced() {
+      clearTimeout(adminSearchTimer);
+      adminSearchTimer = setTimeout(() => {
+        loadAdminUsers(document.getElementById('admin-search').value.trim());
+      }, 300);
+    }
+
+    async function loadAdminUsers(q) {
+      const listBox = document.getElementById('admin-list');
+      listBox.innerHTML = '<div class="empty">Загрузка…</div>';
+      try {
+        const res = await fetch(WORKER_URL + "?action=admin_users&user_id=" + user.id + "&q=" + encodeURIComponent(q));
+        const data = await res.json();
+        if (!data.ok) { listBox.innerHTML = '<div class="empty">Нет доступа.</div>'; return; }
+
+        document.getElementById('admin-count').textContent =
+          q ? `Найдено: ${data.users.length}` : `Всего участников: ${data.total}`;
+
+        if (!data.users.length) {
+          listBox.innerHTML = '<div class="empty">Никого не найдено 🤷</div>';
+          return;
+        }
+
+        listBox.innerHTML = data.users.map(u => {
+          const hiddenMark = u.hidden ? ' 🙈' : '';
+          return `<div class="rank-row" style="cursor:pointer"
+                    onclick="openPublicProfile('${u.user_id}', null)">
+                    <div class="rk-name">${u.name}${hiddenMark}
+                      <div style="font-size:11px;color:var(--hint);margin-top:2px;">ID ${u.user_id}</div>
+                    </div>
+                    <div class="rk-score">${u.score}</div>
+                  </div>`;
+        }).join('');
+      } catch (e) {
+        listBox.innerHTML = '<div class="empty">Ошибка загрузки.</div>';
+      }
+    }
     
     checkAccess();
   </script>
