@@ -1107,6 +1107,14 @@
       tg.HapticFeedback?.impactOccurred('light');
       const h = window.MARATHON_HISTORY[idx];
       if (!h) return;
+            // 🏷 качества для итогового отчёта (только тут, вопросы при заполнении не меняются)
+      const QUALITY_LABELS = {
+        q1: "Продуктивность",
+        q2: "Решительность",
+        q3: "Активность",
+        q4: "Сосредоточенность",
+        q5: "Целеустремлённость"
+      };
 
       // сопоставляем ключи вопросов с их текстом из meta
       const qMap = {};
@@ -1117,7 +1125,7 @@
       const bd = h.breakdown || {};
       for (const key in bd) {
         const q = qMap[key];
-        const qTitle = q ? q.q : key;
+        const qTitle = QUALITY_LABELS[key] || (q ? q.q : key);
         const b = bd[key];
         // визуальная полоска: среднее из 5
         const pct = Math.round((b.avg / 5) * 100);
