@@ -943,6 +943,10 @@
       const pct = Math.round((st.active.marked_days / st.active.duration) * 100);
       sub.textContent = '';
       if (st.active.marked_today) {
+        const TURBO_TEST = true; // 🧪 ТЕСТ! перед запуском поставить false
+        const turboBtn = (TURBO_TEST && String(user.id) === String(OWNER_ID))
+          ? '<button class="join-btn" style="width:100%;margin:10px 0;background:#3a1c1c;color:#ff8a8a;" onclick="turboNextDay()">⚡ Прожить следующий день (ТЕСТ)</button>'
+          : '';
         body.innerHTML =
           '<div class="mar-hero"><div class="m-day">' + st.active.day + '<span> / ' + st.active.duration + '</span></div>' +
           '<div class="m-label">День отмечен ✅ Возвращайся завтра</div>' +
@@ -950,6 +954,7 @@
           '<div class="mar-progress-text">' + st.active.marked_days + ' из ' + st.active.duration + ' дней</div></div>' +
           '<div class="mar-done"><div class="big-check">🙌</div><h3>На сегодня всё</h3>' +
           '<p>Ты держишь строй. Завтра — новый день.<br>Дисциплина куётся повторением.</p></div>' +
+          turboBtn +
           renderMarathonHistory(st.history);
         return;
       }
