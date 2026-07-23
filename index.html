@@ -207,7 +207,7 @@
       </div>
       <div class="stat-grid">
         <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
-        <div class="stat-box"><div class="val" id="polls-done">0</div><div class="lbl">Опросов пройдено</div></div>
+        <div class="stat-box"><div class="val" id="polls-done">0</div><div class="lbl">Заданий выполнено</div></div>
         <div class="stat-box"><div class="val" id="awards-count">0</div><div class="lbl">Наград</div></div>
       </div>
       <div class="section-title">Достижения</div>
@@ -930,7 +930,7 @@
       const sub = document.getElementById('mar-sub');
       if (st.just_failed) {
         tg.HapticFeedback?.notificationOccurred?.('warning');
-        showToast('😔 Марафон провален — был пропуск 3+ дней');
+        showToast('😔 Марафон провален — был пропуск 2+ дней');
       }
       if (!st.active) {
         sub.textContent = 'Готов начать?';
