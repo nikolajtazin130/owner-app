@@ -207,8 +207,11 @@
       </div>
       <div class="stat-grid">
         <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
-        <div class="stat-box"><div class="val" id="polls-done">0</div><div class="lbl">Заданий выполнено</div></div>
+        <div class="stat-box"><div class="val" id="score-count">0</div><div class="lbl">Баллов</div></div>
         <div class="stat-box"><div class="val" id="awards-count">0</div><div class="lbl">Наград</div></div>
+      </div>
+      <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
+        Заданий выполнено: <span id="polls-done" style="color:var(--accent);font-weight:600;">0</span>
       </div>
       <div class="section-title">Достижения</div>
       <div id="awards-list"><div class="empty" style="padding:20px 0;font-size:12px;">Награды появятся здесь 🔜</div></div>
@@ -569,6 +572,11 @@
         for (const k in profile.results) pollsDone += profile.results[k].length;
       }
       document.getElementById('polls-done').textContent = pollsDone;
+
+      // 🏆 баллы (считает воркер, отдаёт в profile.score)
+      if (profile.score !== undefined) {
+        document.getElementById('score-count').textContent = profile.score;
+      }
 
       const awards = profile.awards || [];
       document.getElementById('awards-count').textContent = awards.length;
