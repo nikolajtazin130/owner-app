@@ -1123,13 +1123,12 @@
         const pct = Math.round((b.avg / 5) * 100);
         rowsHtml +=
           '<div style="margin-bottom:14px;text-align:left;">' +
-            '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
-              '<span style="color:var(--text);">' + qTitle + '</span>' +
-              '<span style="color:var(--accent);font-weight:700;">' + b.avg + ' / 5</span>' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:13px;margin-bottom:5px;">' +
+              '<span style="color:var(--text);flex:1;min-width:0;">' + qTitle + '</span>' +
+              '<span style="color:var(--accent);font-weight:700;white-space:nowrap;flex-shrink:0;">' + b.avg + ' / 5</span>' +
             '</div>' +
             '<div class="mar-progress" style="margin:0;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
           '</div>';
-      }
 
       const html =
         '<div class="modal-card" onclick="event.stopPropagation()" style="max-width:360px;">' +
