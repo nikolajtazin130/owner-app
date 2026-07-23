@@ -1139,6 +1139,12 @@
           '</div>';
       }
 
+      // средний балл по марафону (среднее из всех avg по вопросам)
+      const avgValues = Object.values(bd).map(b => b.avg).filter(v => typeof v === 'number');
+      const avgScore = avgValues.length
+        ? (avgValues.reduce((a, b) => a + b, 0) / avgValues.length).toFixed(1)
+        : '—';
+
       const html =
         '<div class="modal-card" onclick="event.stopPropagation()" style="max-width:360px;">' +
           '<span class="close-x" onclick="closeMarathonReport()">✕</span>' +
@@ -1147,7 +1153,7 @@
           '<div class="m-place">' + fmtDate(h.start_date) + ' → ' + fmtDate(h.ended) + '</div>' +
           '<div class="m-stats">' +
             '<div class="m-box"><div class="v">' + h.marked + '</div><div class="l">Дней</div></div>' +
-            '<div class="m-box"><div class="v">' + (h.sum ?? '—') + '</div><div class="l">Сумма</div></div>' +
+            '<div class="m-box"><div class="v">' + avgScore + '</div><div class="l">Средний балл</div></div>' +
             '<div class="m-box"><div class="v">+' + h.bonus + '</div><div class="l">Баллов</div></div>' +
           '</div>' +
           '<div class="section-title" style="margin:10px 0;">Разбивка по вопросам</div>' +
