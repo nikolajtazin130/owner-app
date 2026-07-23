@@ -124,6 +124,35 @@
     .react-btn .r-count { font-size:13px; font-weight:700; color:var(--hint); }
     .react-btn.active { border-color:var(--accent); background:rgba(200,168,107,0.12); }
     .react-btn.active .r-count { color:var(--accent); }
+        /* === МАРАФОН === */
+    .mar-hero { background:linear-gradient(135deg, rgba(200,168,107,0.15), rgba(200,168,107,0.03)); border:1px solid var(--accent); border-radius:20px; padding:22px; margin-bottom:16px; text-align:center; }
+    .mar-hero .m-day { font-size:38px; font-weight:800; color:var(--accent); line-height:1; }
+    .mar-hero .m-day span { font-size:18px; color:var(--hint); font-weight:600; }
+    .mar-hero .m-label { font-size:13px; color:var(--hint); margin-top:6px; }
+    .mar-progress { height:8px; background:rgba(255,255,255,0.08); border-radius:8px; margin:16px 0 4px; overflow:hidden; }
+    .mar-progress-fill { height:100%; background:var(--accent); border-radius:8px; transition:width .4s; }
+    .mar-progress-text { font-size:11px; color:var(--hint); text-align:right; }
+    .mar-q { background:var(--card); border:1px solid rgba(255,255,255,0.05); border-radius:16px; padding:18px; margin-bottom:12px; }
+    .mar-q .q-title { font-size:16px; font-weight:600; margin-bottom:4px; line-height:1.4; }
+    .mar-q .q-hint { font-size:12px; color:var(--hint); margin-bottom:14px; }
+    .scale-row { display:flex; gap:8px; }
+    .scale-btn { flex:1; aspect-ratio:1; background:var(--bg); border:1px solid rgba(255,255,255,0.12); border-radius:12px; font-size:17px; font-weight:700; color:var(--text); cursor:pointer; transition:transform .1s, border-color .15s, background .15s; display:flex; align-items:center; justify-content:center; }
+    .scale-btn:active { transform:scale(0.9); }
+    .scale-btn.sel { background:var(--accent); color:#000; border-color:var(--accent); }
+    .yesno-row { display:flex; gap:10px; }
+    .yn-btn { flex:1; background:var(--bg); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:14px; font-size:15px; font-weight:600; color:var(--text); cursor:pointer; transition:transform .1s, border-color .15s, background .15s; }
+    .yn-btn:active { transform:scale(0.95); }
+    .yn-btn.sel-yes { background:var(--accent); color:#000; border-color:var(--accent); }
+    .yn-btn.sel-no { background:#3a1c1c; color:#ff8a8a; border-color:#ff8a8a; }
+    .mar-done { text-align:center; padding:20px; }
+    .mar-done .big-check { font-size:56px; margin-bottom:12px; }
+    .mar-done h3 { font-size:20px; margin-bottom:8px; }
+    .mar-done p { font-size:14px; color:var(--hint); line-height:1.5; }
+    .mar-hist-item { background:var(--card); border-radius:12px; padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px; border:1px solid rgba(255,255,255,0.05); }
+    .mar-hist-item .h-ico { font-size:22px; }
+    .mar-hist-item .h-info { flex:1; }
+    .mar-hist-item .h-info h5 { font-size:14px; margin-bottom:2px; }
+    .mar-hist-item .h-info p { font-size:11px; color:var(--hint); }
   </style>
 </head>
 <body>
@@ -159,8 +188,14 @@
 
     <div id="tab-polls" class="tab-page hidden">
       <div class="logo">TRIUMPH OWNER</div>
-      <div class="subtitle">Опросы и тесты</div>
-      <div class="section-title">Доступные опросы</div>
+      <div class="subtitle">Задания</div>
+      <div class="section-title">Марафоны</div>
+      <div class="card" onclick="openMarathon('discipline')">
+        <span class="badge">🔥 30 дней</span>
+        <h3>Марафон дисциплины</h3>
+        <p>Отмечайся каждый день. Дойди до финиша — получи награду.</p>
+      </div>
+      <div class="section-title">Доступные задания</div>
       <div id="polls-list"></div>
     </div>
 
@@ -212,6 +247,13 @@
     <div class="season-header" id="survey-title"></div>
     <div class="season-sub" id="survey-progress"></div>
     <div id="survey-body"></div>
+  </div>
+
+  <div id="marathon-view" class="hidden">
+    <button class="back-btn" onclick="backFromMarathon()">← Назад</button>
+    <div class="season-header" id="mar-title">Марафон</div>
+    <div class="season-sub" id="mar-sub"></div>
+    <div id="mar-body"><div class="empty">Загрузка…</div></div>
   </div>
 
       <div id="profile-modal" class="modal-overlay" onclick="closeProfileModal(event)">
@@ -843,6 +885,216 @@
       if (e && e.target.closest('.modal-card')) return;
       document.getElementById('profile-modal').classList.remove('show');
     }
+
+        // ═══════════ МАРАФОН (фронт) ═══════════
+    let currentMarathon = null;
+    let marathonMeta = null;
+    let marathonAnswers = {};
+
+    function marathonShow() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('locked').classList.add('hidden');
+      document.getElementById('season-view').classList.add('hidden');
+      document.getElementById('survey-view').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.querySelectorAll('#app .tab-page').forEach(el => el.classList.add('hidden'));
+      const tb = document.querySelector('#app .tabbar');
+      if (tb) tb.style.display = 'none';
+      document.getElementById('marathon-view').classList.remove('hidden');
+      window.scrollTo(0, 0);
+    }
+
+    async function openMarathon(mId) {
+      tg.HapticFeedback?.impactOccurred('light');
+      currentMarathon = mId;
+      marathonAnswers = {};
+      marathonShow();
+      document.getElementById('mar-body').innerHTML = '<div class="empty">Загрузка…</div>';
+      try {
+        const metaRes = await fetch(DATA_PATH + "marathon_" + mId + ".json?v=" + Date.now());
+        marathonMeta = await metaRes.json();
+        document.getElementById('mar-title').textContent = marathonMeta.title;
+        const stRes = await fetch(WORKER_URL + "?action=marathon_status&user_id=" + user.id + "&marathon_id=" + mId);
+        const st = await stRes.json();
+        if (!st.ok) { document.getElementById('mar-body').innerHTML = '<div class="empty">Ошибка загрузки.</div>'; return; }
+        renderMarathon(st);
+      } catch (e) {
+        document.getElementById('mar-body').innerHTML = '<div class="empty">Не удалось загрузить марафон.</div>';
+      }
+    }
+
+    function renderMarathon(st) {
+      const body = document.getElementById('mar-body');
+      const sub = document.getElementById('mar-sub');
+      if (st.just_failed) {
+        tg.HapticFeedback?.notificationOccurred?.('warning');
+        showToast('😔 Марафон провален — был пропуск 3+ дней');
+      }
+      if (!st.active) {
+        sub.textContent = 'Готов начать?';
+        let histHtml = renderMarathonHistory(st.history);
+        body.innerHTML =
+          '<div class="mar-hero"><div class="m-label" style="margin-top:0;font-size:15px;color:var(--text);line-height:1.5;">' +
+          marathonMeta.duration + ' дней. Каждый день — короткая отметка.<br>Пропустишь 3 дня подряд — придётся начать заново.</div></div>' +
+          '<button class="join-btn" style="width:100%;margin-bottom:20px" onclick="startMarathonDay()">Начать марафон 🔥</button>' +
+          histHtml;
+        return;
+      }
+      const pct = Math.round((st.active.marked_days / st.active.duration) * 100);
+      sub.textContent = '';
+      if (st.active.marked_today) {
+        body.innerHTML =
+          '<div class="mar-hero"><div class="m-day">' + st.active.day + '<span> / ' + st.active.duration + '</span></div>' +
+          '<div class="m-label">День отмечен ✅ Возвращайся завтра</div>' +
+          '<div class="mar-progress"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="mar-progress-text">' + st.active.marked_days + ' из ' + st.active.duration + ' дней</div></div>' +
+          '<div class="mar-done"><div class="big-check">🙌</div><h3>На сегодня всё</h3>' +
+          '<p>Ты держишь строй. Завтра — новый день.<br>Дисциплина куётся повторением.</p></div>' +
+          renderMarathonHistory(st.history);
+        return;
+      }
+      sub.textContent = 'Отметь сегодняшний день';
+      marathonAnswers = {};
+      const qHtml = marathonMeta.questions.map(q => renderMarathonQuestion(q)).join('');
+      body.innerHTML =
+        '<div class="mar-hero"><div class="m-day">' + st.active.day + '<span> / ' + st.active.duration + '</span></div>' +
+        '<div class="m-label">День ' + st.active.day + ' — отметься</div>' +
+        '<div class="mar-progress"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="mar-progress-text">' + st.active.marked_days + ' из ' + st.active.duration + ' дней</div></div>' +
+        qHtml +
+        '<button class="join-btn" id="mar-submit" style="width:100%;margin-top:8px;opacity:0.5;pointer-events:none" onclick="submitMarathonDay()">Отметить день</button>';
+    }
+
+    function renderMarathonQuestion(q) {
+      if (q.type === 'yesno') {
+        return '<div class="mar-q"><div class="q-title">' + q.q + '</div>' +
+          '<div class="yesno-row">' +
+          '<button class="yn-btn" onclick="pickYesNo(this,\'' + q.key + '\',5)">Да</button>' +
+          '<button class="yn-btn" onclick="pickYesNo(this,\'' + q.key + '\',0)">Нет</button>' +
+          '</div></div>';
+      }
+      const btns = [1,2,3,4,5].map(n =>
+        '<button class="scale-btn" onclick="pickScale(this,\'' + q.key + '\',' + n + ')">' + n + '</button>'
+      ).join('');
+      return '<div class="mar-q"><div class="q-title">' + q.q + '</div>' +
+        (q.hint ? '<div class="q-hint">' + q.hint + '</div>' : '') +
+        '<div class="scale-row" data-invert="' + (q.invert ? 1 : 0) + '">' + btns + '</div></div>';
+    }
+
+    function pickScale(btn, key, value) {
+      tg.HapticFeedback?.impactOccurred('light');
+      const row = btn.parentElement;
+      row.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('sel'));
+      btn.classList.add('sel');
+      const invert = row.dataset.invert === '1';
+      marathonAnswers[key] = invert ? (6 - value) : value;
+      checkMarathonReady();
+    }
+
+    function pickYesNo(btn, key, value) {
+      tg.HapticFeedback?.impactOccurred('light');
+      const row = btn.parentElement;
+      row.querySelectorAll('.yn-btn').forEach(b => { b.classList.remove('sel-yes','sel-no'); });
+      btn.classList.add(value > 0 ? 'sel-yes' : 'sel-no');
+      marathonAnswers[key] = value;
+      checkMarathonReady();
+    }
+
+    function checkMarathonReady() {
+      const total = marathonMeta.questions.length;
+      const answered = Object.keys(marathonAnswers).length;
+      const btn = document.getElementById('mar-submit');
+      if (!btn) return;
+      if (answered >= total) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+      else { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
+    }
+
+    function startMarathonDay() {
+      tg.HapticFeedback?.impactOccurred('medium');
+      renderMarathon({ ok:true, active:{ day:1, duration:marathonMeta.duration, marked_today:false, marked_days:0 }, history:[] });
+    }
+
+    async function submitMarathonDay() {
+      tg.HapticFeedback?.impactOccurred('medium');
+      const btn = document.getElementById('mar-submit');
+      if (btn) { btn.style.pointerEvents = 'none'; btn.textContent = 'Сохраняю…'; }
+      try {
+        const res = await fetch(WORKER_URL + "?action=marathon_mark&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ marathon_id: currentMarathon, answers: marathonAnswers })
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          if (data.error === 'already_marked') { showToast('Сегодня уже отмечено ✅'); openMarathon(currentMarathon); return; }
+          if (data.error === 'failed') { showToast('😔 Марафон провален'); openMarathon(currentMarathon); return; }
+          showToast('Не удалось сохранить');
+          if (btn) { btn.style.pointerEvents='auto'; btn.textContent='Отметить день'; }
+          return;
+        }
+        if (data.finished) { showMarathonFinish(data.finish); }
+        else {
+          tg.HapticFeedback?.notificationOccurred?.('success');
+          showToast('День отмечен! 🔥');
+          openMarathon(currentMarathon);
+        }
+      } catch (e) {
+        showToast('Ошибка сети');
+        if (btn) { btn.style.pointerEvents='auto'; btn.textContent='Отметить день'; }
+      }
+    }
+
+    function showMarathonFinish(fin) {
+      tg.HapticFeedback?.notificationOccurred?.('success');
+      let level = { title:'Готово', emoji:'🎉', text:'' };
+      if (marathonMeta.levels) {
+        level = marathonMeta.levels.find(l => fin.percent >= l.min) || marathonMeta.levels[marathonMeta.levels.length-1];
+      }
+      document.getElementById('mar-sub').textContent = 'Марафон завершён';
+      document.getElementById('mar-body').innerHTML =
+        '<div class="mar-done"><div class="big-check">' + level.emoji + '</div>' +
+        '<h3>' + level.title + '</h3>' +
+        '<div class="result-score" style="margin:8px 0;">Дисциплина: ' + fin.percent + '%</div>' +
+        '<p>' + level.text + '</p>' +
+        '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin:20px 0;">' +
+        '<div style="font-size:14px;color:var(--text);">🏆 Марафон пройден!</div>' +
+        '<div style="font-size:13px;color:var(--hint);margin-top:6px;">+' + fin.bonus + ' баллов · награда получена · ' + fin.marked + ' дней отмечено</div></div>' +
+        '<button class="join-btn" style="width:100%" onclick="backFromMarathon()">Готово</button></div>';
+      refreshProfileSilently();
+    }
+
+    function renderMarathonHistory(history) {
+      if (!history || !history.length) return '';
+      const rows = history.slice().reverse().map(h => {
+        let ico, title, sub;
+        if (h.result === 'done') { ico = '🏆'; title = 'Пройден · ' + h.percent + '%'; sub = h.marked + ' дней · +' + h.bonus + ' баллов · ' + fmtDate(h.ended); }
+        else if (h.result === 'failed') { ico = '💔'; title = 'Провален на дне ' + h.reached; sub = h.marked + ' дней отмечено · ' + fmtDate(h.ended); }
+        else { ico = '🔄'; title = 'Прерван на дне ' + h.reached; sub = h.marked + ' дней отмечено · ' + fmtDate(h.ended); }
+        return '<div class="mar-hist-item"><div class="h-ico">' + ico + '</div><div class="h-info"><h5>' + title + '</h5><p>' + sub + '</p></div></div>';
+      }).join('');
+      return '<div class="section-title" style="margin-top:20px">История попыток</div>' + rows;
+    }
+
+    function fmtDate(str) {
+      if (!str) return '';
+      return new Date(str).toLocaleDateString('ru-RU');
+    }
+
+    function backFromMarathon() {
+      tg.HapticFeedback?.impactOccurred('light');
+      document.getElementById('marathon-view').classList.add('hidden');
+      showScreen('app');
+      switchTab('polls');
+    }
+
+    async function refreshProfileSilently() {
+      try {
+        const res = await fetch(WORKER_URL + "?user_id=" + user.id);
+        const data = await res.json();
+        if (data.ok && data.profile) { window.PROFILE = data.profile; renderProfileStats(data.profile); }
+      } catch (e) {}
+    }
+    // ═══════════ КОНЕЦ МАРАФОНА (фронт) ═══════════
     
     checkAccess();
   </script>
