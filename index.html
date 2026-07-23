@@ -1079,14 +1079,23 @@
       refreshProfileSilently();
     }
 
+    // храним историю глобально, чтобы модалка могла достать деталь по индексу
+    window.MARATHON_HISTORY = [];
+
     function renderMarathonHistory(history) {
       if (!history || !history.length) return '';
-      const rows = history.slice().reverse().map(h => {
+      window.MARATHON_HISTORY = history.slice(); // сохраняем как есть
+      // reverse-индексы: показываем новые сверху, но помним реальный индекс
+      const rows = history.map((h, realIdx) => ({ h, realIdx })).reverse().map(({ h, realIdx }) => {
         let ico, title, sub;
         if (h.result === 'done') { ico = '🏆'; title = 'Пройден · ' + h.percent + '%'; sub = h.marked + ' дней · +' + h.bonus + ' баллов · ' + fmtDate(h.ended); }
         else if (h.result === 'failed') { ico = '💔'; title = 'Провален на дне ' + h.reached; sub = h.marked + ' дней отмечено · ' + fmtDate(h.ended); }
         else { ico = '🔄'; title = 'Прерван на дне ' + h.reached; sub = h.marked + ' дней отмечено · ' + fmtDate(h.ended); }
-        return '<div class="mar-hist-item"><div class="h-ico">' + ico + '</div><div class="h-info"><h5>' + title + '</h5><p>' + sub + '</p></div></div>';
+        // подробный отчёт есть только у пройденных с breakdown
+        const clickable = (h.result === 'done' && h.breakdown);
+        const arrow = clickable ? '<div style="color:var(--accent);font-size:18px;">›</div>' : '';
+        const onclick = clickable ? ` style="cursor:pointer" onclick="openMarathonReport(${realIdx})"` : '';
+        return '<div class="mar-hist-item"' + onclick + '><div class="h-ico">' + ico + '</div><div class="h-info"><h5>' + title + '</h5><p>' + sub + '</p></div>' + arrow + '</div>';
       }).join('');
       return '<div class="section-title" style="margin-top:20px">История попыток</div>' + rows;
     }
