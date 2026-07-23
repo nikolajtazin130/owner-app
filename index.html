@@ -616,7 +616,6 @@
     }
 
         // === ПУБЛИЧНЫЙ ПРОФИЛЬ ===
-            // === ПУБЛИЧНЫЙ ПРОФИЛЬ ===
     let currentTargetId = null; // 👑 кого сейчас смотрит OWNER
 
     async function openPublicProfile(targetId, place) {
@@ -660,10 +659,10 @@
             }).join('')
           : '';
 
-                // 🫶 рисуем кнопки реакций
+        // 🫶 рисуем кнопки реакций
         renderReactions(p.reactions || {}, p.my_reactions || []);
 
-        // 👑 если это OWNER — показываем панель управления наградами
+        // 👑 если это OWNER — показываем панель управления наградами и статами
         if (String(user.id) === String(OWNER_ID)) renderOwnerPanel(aw);
       } catch (e) {
         document.getElementById('m-name').textContent = 'Ошибка загрузки';
@@ -711,7 +710,7 @@
       } catch (e) { showToast('Ошибка сети'); }
     }
 
-    // 👑 Панель OWNER: выдать / снять награду
+    // 👑 Панель OWNER: управление профилем
     function renderOwnerPanel(currentAwards) {
       const panel = document.getElementById('owner-panel');
       const ownedIds = (currentAwards || []).map(a => a.id);
@@ -723,13 +722,27 @@
 
       panel.innerHTML = `
         <div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:18px;padding-top:16px;text-align:left;">
-          <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">👑 Управление наградами</div>
+          <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">👑 Награды</div>
           <select id="award-select" style="width:100%;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;margin-bottom:10px;">
             ${options}
           </select>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
             <button onclick="giveAward()" style="flex:1;background:var(--accent);color:#000;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">Выдать 🏅</button>
             <button onclick="takeAward()" style="flex:1;background:#3a1c1c;color:#ff8a8a;border:1px solid #ff8a8a;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">Снять ✕</button>
+          </div>
+
+          <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🛠 Управление статами</div>
+          
+          <!-- Редактор баллов -->
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input type="number" id="edit-score-input" placeholder="+/- Баллы (напр. 50 или -10)" style="flex:2;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;">
+            <button onclick="editUserStat('score')" style="flex:1;background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;">Добавить</button>
+          </div>
+
+          <!-- Редактор дней -->
+          <div style="display:flex;gap:8px;">
+            <input type="number" id="edit-days-input" placeholder="Установить дни (напр. 365)" style="flex:2;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;">
+            <button onclick="editUserStat('days')" style="flex:1;background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;">Задать</button>
           </div>
         </div>`;
     }
@@ -788,10 +801,49 @@
       } catch (e) { showToast('Ошибка сети'); }
     }
 
+    // 👑 Изменить баллы или дни участника
+    async function editUserStat(type) {
+      const input = document.getElementById(`edit-${type}-input`);
+      const value = parseInt(input.value);
+      
+      if (isNaN(value)) {
+        showToast('Введи число!');
+        return;
+      }
+
+      tg.HapticFeedback?.impactOccurred('medium');
+      
+      try {
+        const res = await fetch(WORKER_URL + "?action=edit_stat&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            target_id: currentTargetId, 
+            stat_type: type, 
+            value: value 
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.ok) {
+          showToast(`Успешно обновлено!`);
+          input.value = ''; // очищаем поле
+          openPublicProfile(currentTargetId, null); // обновляем профиль
+          loadRating(); // обновляем рейтинг
+        } else {
+          showToast('Не удалось обновить');
+        }
+      } catch (e) { 
+        showToast('Ошибка сети'); 
+      }
+    }
+
     function closeProfileModal(e) {
       if (e && e.target.closest('.modal-card')) return;
       document.getElementById('profile-modal').classList.remove('show');
     }
+    
     checkAccess();
   </script>
 </body>
