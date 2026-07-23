@@ -272,6 +272,8 @@
       <div id="owner-panel"></div>
     </div>
   </div>
+      
+    <div id="marathon-report" class="modal-overlay" onclick="closeMarathonReport(event)"></div>
 
   <div id="toast" class="toast"></div>
 
@@ -1098,6 +1100,60 @@
         return '<div class="mar-hist-item"' + onclick + '><div class="h-ico">' + ico + '</div><div class="h-info"><h5>' + title + '</h5><p>' + sub + '</p></div>' + arrow + '</div>';
       }).join('');
       return '<div class="section-title" style="margin-top:20px">История попыток</div>' + rows;
+    }
+
+        // 📊 Подробный отчёт по завершённому марафону
+    function openMarathonReport(idx) {
+      tg.HapticFeedback?.impactOccurred('light');
+      const h = window.MARATHON_HISTORY[idx];
+      if (!h) return;
+
+      // сопоставляем ключи вопросов с их текстом из meta
+      const qMap = {};
+      (marathonMeta?.questions || []).forEach(q => { qMap[q.key] = q; });
+
+      // строки по каждому вопросу
+      let rowsHtml = '';
+      const bd = h.breakdown || {};
+      for (const key in bd) {
+        const q = qMap[key];
+        const qTitle = q ? q.q : key;
+        const b = bd[key];
+        // визуальная полоска: среднее из 5
+        const pct = Math.round((b.avg / 5) * 100);
+        rowsHtml +=
+          '<div style="margin-bottom:14px;text-align:left;">' +
+            '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
+              '<span style="color:var(--text);">' + qTitle + '</span>' +
+              '<span style="color:var(--accent);font-weight:700;">' + b.avg + ' / 5</span>' +
+            '</div>' +
+            '<div class="mar-progress" style="margin:0;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+          '</div>';
+      }
+
+      const html =
+        '<div class="modal-card" onclick="event.stopPropagation()" style="max-width:360px;">' +
+          '<span class="close-x" onclick="closeMarathonReport()">✕</span>' +
+          '<div style="font-size:44px;margin-bottom:6px;">🏆</div>' +
+          '<div class="m-name">Пройден · ' + h.percent + '%</div>' +
+          '<div class="m-place">' + fmtDate(h.start_date) + ' → ' + fmtDate(h.ended) + '</div>' +
+          '<div class="m-stats">' +
+            '<div class="m-box"><div class="v">' + h.marked + '</div><div class="l">Дней</div></div>' +
+            '<div class="m-box"><div class="v">' + (h.sum ?? '—') + '</div><div class="l">Сумма</div></div>' +
+            '<div class="m-box"><div class="v">+' + h.bonus + '</div><div class="l">Баллов</div></div>' +
+          '</div>' +
+          '<div class="section-title" style="margin:10px 0;">Разбивка по вопросам</div>' +
+          (rowsHtml || '<div class="empty" style="padding:10px 0;font-size:12px;">Нет данных по вопросам</div>') +
+        '</div>';
+
+      const modal = document.getElementById('marathon-report');
+      modal.innerHTML = html;
+      modal.classList.add('show');
+    }
+
+    function closeMarathonReport(e) {
+      if (e && e.target.closest('.modal-card')) return;
+      document.getElementById('marathon-report').classList.remove('show');
     }
 
     function fmtDate(str) {
