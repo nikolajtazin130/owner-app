@@ -1019,7 +1019,9 @@
       const btn = document.getElementById('mar-submit');
       if (btn) { btn.style.pointerEvents = 'none'; btn.textContent = 'Сохраняю…'; }
       try {
-        const res = await fetch(WORKER_URL + "?action=marathon_mark&user_id=" + user.id, {
+      const TURBO_TEST = true; // 🧪 ТЕСТ! Перед запуском поставить false
+        const turboParam = TURBO_TEST ? "&turbo=1" : "";
+        const res = await fetch(WORKER_URL + "?action=marathon_mark&user_id=" + user.id + turboParam, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ marathon_id: currentMarathon, answers: marathonAnswers })
