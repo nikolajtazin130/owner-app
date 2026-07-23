@@ -1014,6 +1014,15 @@
       else { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
     }
 
+        // 🧪 ТУРБО: прожить следующий день (только тест, только OWNER)
+    async function turboNextDay() {
+      tg.HapticFeedback?.impactOccurred('medium');
+      // ставим случайные ответы, чтобы не тыкать вопросы вручную
+      marathonAnswers = {};
+      (marathonMeta.questions || []).forEach(q => { marathonAnswers[q.key] = 5; });
+      await submitMarathonDay();
+    }
+
     function startMarathonDay() {
       tg.HapticFeedback?.impactOccurred('medium');
       renderMarathon({ ok:true, active:{ day:1, duration:marathonMeta.duration, marked_today:false, marked_days:0 }, history:[] });
