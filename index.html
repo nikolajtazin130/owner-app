@@ -565,11 +565,18 @@
       if (user?.photo_url) document.getElementById('avatar').innerHTML = '<img src="' + user.photo_url + '" alt="">';
     }
 
-    function renderProfileStats(profile) {
+        function renderProfileStats(profile) {
       if (!profile) return;
       let pollsDone = 0;
       if (profile.results) {
         for (const k in profile.results) pollsDone += profile.results[k].length;
+      }
+      // ➕ добавляем пройденные марафоны
+      if (profile.marathons) {
+        for (const mId in profile.marathons) {
+          const hist = (profile.marathons[mId] && profile.marathons[mId].history) || [];
+          pollsDone += hist.filter(h => h.result === "done").length;
+        }
       }
       document.getElementById('polls-done').textContent = pollsDone;
 
