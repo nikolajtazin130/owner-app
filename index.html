@@ -208,10 +208,7 @@
       <div class="stat-grid">
         <div class="stat-box"><div class="val" id="score-count">0</div><div class="lbl">Баллов</div></div>
         <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
-        <div class="stat-box"><div class="val" id="polls-done">0</div><div class="lbl">Заданий</div></div>
-      </div>
-      <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
-        Наград: <span id="awards-count" style="color:var(--accent);font-weight:600;">0</span>
+        <div class="stat-box"><div class="val" id="awards-count">0</div><div class="lbl">Наград</div></div>
       </div>
       <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
         Заданий выполнено: <span id="polls-done" style="color:var(--accent);font-weight:600;">0</span>
@@ -1074,7 +1071,7 @@
       const btn = document.getElementById('mar-submit');
       if (btn) { btn.style.pointerEvents = 'none'; btn.textContent = 'Сохраняю…'; }
       try {
-      const TURBO_TEST = true; // 🧪 ТЕСТ! Перед запуском поставить false
+      const TURBO_TEST = false; // 🧪 ТЕСТ! Перед запуском поставить false
         const turboParam = TURBO_TEST ? "&turbo=1" : "";
         const res = await fetch(WORKER_URL + "?action=marathon_mark&user_id=" + user.id + turboParam, {
           method: "POST",
