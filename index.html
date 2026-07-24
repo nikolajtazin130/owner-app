@@ -164,7 +164,10 @@
     .mar-hist-item .h-info { flex:1; }
     .mar-hist-item .h-info h5 { font-size:14px; margin-bottom:2px; }
     .mar-hist-item .h-info p { font-size:11px; color:var(--hint); }
-        /* === ПРОЧИТАНО (посты сезона) === */
+       /* === ПРОЧИТАНО (посты сезона) === */
+    .lesson .read-toggle { min-width:24px; height:24px; border-radius:50%; border:2px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--accent); flex-shrink:0; margin-top:1px; cursor:pointer; transition:all .15s; }
+    .lesson .read-toggle:active { transform:scale(0.85); }
+    .lesson .read-toggle.on { background:var(--accent); border-color:var(--accent); color:#000; }
     .lesson.read-done { opacity:0.5; }
     .read-progress { margin:0 0 18px; }
     .read-progress .rp-text { font-size:13px; color:var(--hint); margin-bottom:6px; }
