@@ -205,10 +205,13 @@
         <div class="profile-name" id="p-name">Участник</div>
         <div class="profile-status">Участник клуба OWNER</div>
       </div>
-      <div class="stat-grid">
+            <div class="stat-grid">
         <div class="stat-box"><div class="val" id="score-count">0</div><div class="lbl">Баллов</div></div>
         <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
         <div class="stat-box"><div class="val" id="awards-count">0</div><div class="lbl">Наград</div></div>
+      </div>
+      <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
+        Заданий выполнено: <span id="polls-done" style="color:var(--accent);font-weight:600;">0</span>
       </div>
       <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
         Заданий выполнено: <span id="polls-done" style="color:var(--accent);font-weight:600;">0</span>
@@ -282,10 +285,13 @@
       <div class="m-avatar">👤</div>
       <div class="m-name" id="m-name">—</div>
       <div class="m-place" id="m-place"></div>
-      <div class="m-stats">
+        <div class="m-stats">
         <div class="m-box"><div class="v" id="m-score">0</div><div class="l">Баллов</div></div>
-        <div class="m-box"><div class="v" id="m-days">0</div><div class="l">Дней</div></div>
-        <div class="m-box"><div class="v" id="m-tasks">0</div><div class="l">Заданий</div></div>
+        <div class="m-box"><div class="v" id="m-days">0</div><div class="l">Дней с нами</div></div>
+        <div class="m-box"><div class="v" id="m-awards-count">0</div><div class="l">Наград</div></div>
+      </div>
+      <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
+        Заданий выполнено: <span id="m-tasks" style="color:var(--accent);font-weight:600;">0</span>
       </div>
         <div class="m-awards" id="m-awards"></div>
       <div class="react-row" id="react-box"></div>
@@ -707,6 +713,7 @@
       document.getElementById('m-score').textContent = '0';
       document.getElementById('m-days').textContent = '0';
       document.getElementById('m-tasks').textContent = '0';
+      document.getElementById('m-awards-count').textContent = '0';
       document.getElementById('m-awards').innerHTML = '';
       document.getElementById('react-box').innerHTML = ''; // 🫶 чистим реакции
       document.getElementById('owner-panel').innerHTML = ''; // чистим панель OWNER
@@ -731,7 +738,7 @@
         document.getElementById('m-days').textContent = p.days;
         document.getElementById('m-tasks').textContent = p.tasks;
         const aw = p.awards_list || [];
-        document.getElementById('m-awards').innerHTML = aw.length
+        document.getElementById('m-awards-count').textContent = aw.length;
           ? aw.map(a => {
               const info = awardById(a.id) || { emoji: "🏅", title: a.title || "" };
               const dateStr = a.date ? " · " + new Date(a.date).toLocaleDateString('ru-RU') : "";
