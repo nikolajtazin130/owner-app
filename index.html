@@ -646,10 +646,10 @@
           const placeTxt = data.me.place
             ? `${data.me.place}<span> из ${data.me.total}</span>`
             : `—<span> вне рейтинга</span>`;
-          meBox.innerHTML =
+            meBox.innerHTML =
             `<div class="rank-me">
                <div class="place">${placeTxt}</div>
-               <div class="score">${data.me.score} баллов · ${data.me.days} дн. · ${data.me.tasks} опр.</div>
+               <div class="score">${data.me.score} баллов · ${data.me.days} дн. · ${data.me.tasks} заданий</div>
              </div>`;
           // выставляем переключатель
           const toggle = document.getElementById('public-toggle');
