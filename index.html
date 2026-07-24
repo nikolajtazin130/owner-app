@@ -113,11 +113,32 @@
 .level-hint { font-size:11px; color:var(--hint); margin-top:6px; }
 /* мини-бейдж для модалки */
 .m-level { font-size:12px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:2px 10px; display:inline-block; margin-bottom:14px; }
-        /* === ПУБЛИЧНЫЙ ПРОФИЛЬ (модалка) === */
+            /* === ПУБЛИЧНЫЙ ПРОФИЛЬ (модалка) === */
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:200; padding:20px; }
     .modal-overlay.show { display:flex; }
-    .modal-card { background:var(--card); border:1px solid var(--accent); border-radius:20px; padding:24px 20px; width:100%; max-width:340px; text-align:center; position:relative; }
-    .modal-card .close-x { position:absolute; top:12px; right:16px; font-size:22px; color:var(--hint); cursor:pointer; }
+    .modal-card {
+      background:var(--card);
+      border:1px solid var(--accent);
+      border-radius:20px;
+      width:100%;
+      max-width:340px;
+      max-height:85vh;              /* ← не выше 85% экрана */
+      text-align:center;
+      position:relative;
+      display:flex;                 /* ← колонка: крестик сверху, скролл ниже */
+      flex-direction:column;
+      overflow:hidden;              /* скругление углов не ломается */
+    }
+    .modal-card .close-x { position:absolute; top:12px; right:16px; font-size:22px; color:var(--hint); cursor:pointer; z-index:2; }
+    /* 🆕 скроллящаяся область с контентом */
+    .modal-body {
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;   /* плавный скролл на iOS */
+      padding:24px 20px;
+      flex:1;
+    }
+    .modal-body::-webkit-scrollbar { width:5px; }
+    .modal-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.2); border-radius:3px; }
     .modal-card .m-avatar { width:70px; height:70px; border-radius:50%; overflow:hidden; background:var(--bg); border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--accent); margin:0 auto 12px; }
     .modal-card .m-name { font-size:20px; font-weight:700; margin-bottom:4px; }
     .modal-card .m-place { font-size:14px; color:var(--accent); margin-bottom:18px; }
@@ -127,6 +148,15 @@
     .m-stats .m-box .l { font-size:10px; color:var(--hint); margin-top:2px; }
     .m-awards { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
     .m-award { font-size:22px; }
+    /* 🆕 отдельный скролл для наград, когда их станет много */
+    .m-awards.scrollable {
+      max-height:120px;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      padding:4px;
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:12px;
+    }
         /* === РЕАКЦИИ === */
     .react-row { display:flex; gap:10px; justify-content:center; margin:16px 0 4px; }
     .react-btn { flex:1; max-width:90px; background:var(--bg); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:10px 6px; cursor:pointer; transition:transform .1s, border-color .15s, background .15s; display:flex; flex-direction:column; align-items:center; gap:4px; }
@@ -305,18 +335,28 @@
     <div id="admin-list"><div class="empty">Загрузка…</div></div>
   </div>
 
-      <div id="profile-modal" class="modal-overlay" onclick="closeProfileModal(event)">
+            <div id="profile-modal" class="modal-overlay" onclick="closeProfileModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
       <span class="close-x" onclick="closeProfileModal()">✕</span>
-      <div class="m-avatar">👤</div>
-      <div class="m-name" id="m-name">—</div>
-      <div class="m-place" id="m-place"></div>
-      <div class="m-level" id="m-level" style="display:none;"></div>
+      <div class="modal-body">
+        <div class="m-avatar">👤</div>
+        <div class="m-name" id="m-name">—</div>
+        <div class="m-place" id="m-place"></div>
+        <div class="m-level" id="m-level" style="display:none;"></div>
         <div class="m-stats">
-        <div class="m-box"><div class="v" id="m-score">0</div><div class="l">Баллов</div></div>
-        <div class="m-box"><div class="v" id="m-days">0</div><div class="l">Дней с нами</div></div>
-        <div class="m-box"><div class="v" id="m-awards-count">0</div><div class="l">Наград</div></div>
+          <div class="m-box"><div class="v" id="m-score">0</div><div class="l">Баллов</div></div>
+          <div class="m-box"><div class="v" id="m-days">0</div><div class="l">Дней с нами</div></div>
+          <div class="m-box"><div class="v" id="m-awards-count">0</div><div class="l">Наград</div></div>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
+          Заданий выполнено: <span id="m-tasks" style="color:var(--accent);font-weight:600;">0</span>
+        </div>
+        <div class="m-awards" id="m-awards"></div>
+        <div class="react-row" id="react-box"></div>
+        <div id="owner-panel"></div>
       </div>
+    </div>
+  </div>
       <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
         Заданий выполнено: <span id="m-tasks" style="color:var(--accent);font-weight:600;">0</span>
       </div>
@@ -904,6 +944,7 @@ function getLevel(score) {
               return `<span class="m-award" title="${info.title}${dateStr}">${info.emoji}</span>`;
             }).join('')
           : '';
+        document.getElementById('m-awards').classList.toggle('scrollable', aw.length > 12);
 
         // 🫶 рисуем кнопки реакций
         renderReactions(p.reactions || {}, p.my_reactions || []);
