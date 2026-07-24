@@ -164,6 +164,12 @@
     .mar-hist-item .h-info { flex:1; }
     .mar-hist-item .h-info h5 { font-size:14px; margin-bottom:2px; }
     .mar-hist-item .h-info p { font-size:11px; color:var(--hint); }
+        /* === ПРОЧИТАНО (посты сезона) === */
+    .lesson.read-done { opacity:0.5; }
+    .read-progress { margin:0 0 18px; }
+    .read-progress .rp-text { font-size:13px; color:var(--hint); margin-bottom:6px; }
+    .read-progress .rp-bar { height:8px; background:rgba(255,255,255,0.08); border-radius:8px; overflow:hidden; }
+    .read-progress .rp-fill { height:100%; background:var(--accent); border-radius:8px; transition:width .4s; }
   </style>
 </head>
 <body>
@@ -386,6 +392,40 @@ function getLevel(score) {
     let seasonsCache = null;
     let pollsCache = null;
 
+    // 🆕 прочитанные посты (только ручная пометка галочкой)
+    let READ_POSTS = [];
+    let currentSeasonLessons = [];   // уроки открытого сейчас сезона
+    let currentSeasonTitle = "";     // заголовок открытого сезона
+
+    function isRead(postId) { return READ_POSTS.includes(String(postId)); }
+
+    async function toggleRead(postId, ev) {
+      if (ev) ev.stopPropagation(); // 🚫 не даём открыться посту при клике по галочке
+      postId = String(postId);
+      tg.HapticFeedback?.impactOccurred('light');
+
+      // оптимистично меняем локально
+      const idx = READ_POSTS.indexOf(postId);
+      if (idx === -1) READ_POSTS.push(postId);
+      else READ_POSTS.splice(idx, 1);
+
+      // перерисовываем список сразу
+      if (currentSeasonLessons.length) renderLessons(currentSeasonLessons);
+
+      try {
+        const res = await fetch(WORKER_URL + "?action=toggle_read&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ post_id: postId })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          READ_POSTS = data.read_posts || READ_POSTS;
+          if (currentSeasonLessons.length) renderLessons(currentSeasonLessons);
+        }
+      } catch (e) {}
+    }
+
     function showScreen(id) {
       // прячем всё
       ['loading','locked','app','season-view','survey-view'].forEach(s => document.getElementById(s).classList.add('hidden'));
@@ -580,8 +620,9 @@ function getLevel(score) {
         function finishSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
     function backFromSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
 
-    async function openSeason(file, title, sub) {
+            async function openSeason(file, title, sub) {
       tg.HapticFeedback?.impactOccurred('light');
+      currentSeasonTitle = title;
       document.getElementById('season-title').textContent = title;
       document.getElementById('season-sub').textContent = sub;
       const listEl = document.getElementById('lessons-list');
@@ -591,9 +632,42 @@ function getLevel(score) {
       try {
         const res = await fetch(DATA_PATH + file + "?v=" + Date.now());
         const lessons = await res.json();
+        currentSeasonLessons = lessons; // 🆕 запоминаем для перерисовки
         if (!lessons.length) { listEl.innerHTML = '<div class="empty">Материалы скоро появятся.</div>'; return; }
-        listEl.innerHTML = lessons.map((les, i) => `<div class="lesson" onclick="openPost(${les.id})"><div class="num">${i + 1}</div><div class="info"><h4>${les.t}</h4><p>${les.d}</p></div></div>`).join('');
+        renderLessons(lessons);
       } catch (e) { listEl.innerHTML = '<div class="empty">Не удалось загрузить. Попробуй позже.</div>'; }
+    }
+
+    // 🆕 рендер уроков: номер + текст (тап = открыть пост), слева отдельная галочка (тап = отметить)
+    function renderLessons(lessons) {
+      const listEl = document.getElementById('lessons-list');
+      const total = lessons.length;
+      const done = lessons.filter(l => isRead(l.id)).length;
+      const pct = total ? Math.round(done / total * 100) : 0;
+
+      const progressHtml =
+        '<div class="read-progress">' +
+          '<div class="rp-text">Прочитано ' + done + ' из ' + total + '</div>' +
+          '<div class="rp-bar"><div class="rp-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>';
+
+      const rows = lessons.map((les, i) => {
+        const read = isRead(les.id);
+        const cls = read ? ' read-done' : '';
+        // галочка — отдельная кнопка, клик по ней НЕ открывает пост
+        const checkBtn =
+          '<div class="read-toggle' + (read ? ' on' : '') + '" ' +
+               'onclick="toggleRead(' + les.id + ', event)">' +
+               (read ? '✓' : '') +
+          '</div>';
+        return '<div class="lesson' + cls + '" onclick="openPost(' + les.id + ')">' +
+                 checkBtn +
+                 '<div class="num">' + (i + 1) + '</div>' +
+                 '<div class="info"><h4>' + les.t + '</h4><p>' + les.d + '</p></div>' +
+               '</div>';
+      }).join('');
+
+      listEl.innerHTML = progressHtml + rows;
     }
 
     async function openLibrary(file, title, sub) {
@@ -611,7 +685,11 @@ function getLevel(score) {
       } catch (e) { listEl.innerHTML = '<div class="empty">Скоро здесь появится контент 🔜</div>'; }
     }
 
-    function openPost(postId) { tg.HapticFeedback?.impactOccurred('light'); tg.openTelegramLink(CHANNEL_BASE + postId); }
+    function openPost(postId) {
+      tg.HapticFeedback?.impactOccurred('light');
+      tg.openTelegramLink(CHANNEL_BASE + postId);
+    }
+    
     function backToApp() { 
       tg.HapticFeedback?.impactOccurred('light'); 
       showScreen('app'); 
@@ -683,6 +761,7 @@ function getLevel(score) {
             document.getElementById('days-count').textContent = days;
           }
 
+          READ_POSTS = (data.profile && data.profile.read_posts) || []; // 🆕
           window.PROFILE = data.profile;
           renderProfileStats(data.profile);
 
