@@ -102,6 +102,17 @@
     .slider:before { content:""; position:absolute; height:22px; width:22px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
     .switch input:checked + .slider { background:var(--accent); }
     .switch input:checked + .slider:before { transform:translateX(20px); }
+    /* === УРОВЕНЬ === */
+.level-badge { display:inline-block; font-size:12px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:3px 12px; margin-top:6px; }
+.level-wrap { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.05); }
+.level-wrap .lv-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+.level-wrap .lv-name { font-size:15px; font-weight:700; color:var(--text); }
+.level-wrap .lv-num { font-size:12px; color:var(--hint); }
+.level-bar { height:8px; background:rgba(255,255,255,0.08); border-radius:8px; overflow:hidden; }
+.level-bar-fill { height:100%; background:var(--accent); border-radius:8px; transition:width .4s; }
+.level-hint { font-size:11px; color:var(--hint); margin-top:6px; }
+/* мини-бейдж для модалки */
+.m-level { font-size:12px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:2px 10px; display:inline-block; margin-bottom:14px; }
         /* === ПУБЛИЧНЫЙ ПРОФИЛЬ (модалка) === */
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:200; padding:20px; }
     .modal-overlay.show { display:flex; }
@@ -204,11 +215,20 @@
         <div class="avatar" id="avatar">👤</div>
         <div class="profile-name" id="p-name">Участник</div>
         <div class="profile-status">Участник клуба OWNER</div>
+        <div class="level-badge" id="p-level-badge">— уровень</div>
       </div>
             <div class="stat-grid">
         <div class="stat-box"><div class="val" id="score-count">0</div><div class="lbl">Баллов</div></div>
         <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
         <div class="stat-box"><div class="val" id="awards-count">0</div><div class="lbl">Наград</div></div>
+      </div>
+       <div class="level-wrap" id="p-level-wrap">
+        <div class="lv-top">
+          <span class="lv-name" id="p-level-name">Присутствующий</span>
+          <span class="lv-num" id="p-level-num">Ур. 1</span>
+        </div>
+        <div class="level-bar"><div class="level-bar-fill" id="p-level-fill" style="width:0%"></div></div>
+        <div class="level-hint" id="p-level-hint"></div>
       </div>
       <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
         Заданий выполнено: <span id="polls-done" style="color:var(--accent);font-weight:600;">0</span>
@@ -282,6 +302,7 @@
       <div class="m-avatar">👤</div>
       <div class="m-name" id="m-name">—</div>
       <div class="m-place" id="m-place"></div>
+      <div class="m-level" id="m-level" style="display:none;"></div>
         <div class="m-stats">
         <div class="m-box"><div class="v" id="m-score">0</div><div class="l">Баллов</div></div>
         <div class="m-box"><div class="v" id="m-days">0</div><div class="l">Дней с нами</div></div>
@@ -326,6 +347,40 @@
       { id: "founder",     emoji: "🎖️", title: "Основатель" },
     ];
     function awardById(id) { return AWARDS.find(a => a.id === id); }
+
+    // 🎖 Уровни (считаются от profile.score на фронте)
+const LEVELS = [
+  { lvl: 1,  title: "Присутствующий",   min: 0 },
+  { lvl: 2,  title: "Участник",          min: 90 },
+  { lvl: 3,  title: "Практик",           min: 200 },
+  { lvl: 4,  title: "Вовлечённый",       min: 360 },
+  { lvl: 5,  title: "Действующий",       min: 560 },
+  { lvl: 6,  title: "Заметный",          min: 820 },
+  { lvl: 7,  title: "Весомый",           min: 1150 },
+  { lvl: 8,  title: "Надёжный",          min: 1550 },
+  { lvl: 9,  title: "Опорный",           min: 2050 },
+  { lvl: 10, title: "Авторитетный",      min: 2700 },
+  { lvl: 11, title: "Влиятельный",       min: 3600 },
+  { lvl: 12, title: "Основа сообщества", min: 4800 },
+];
+
+// возвращает { current, next, progress }
+function getLevel(score) {
+  score = Number(score) || 0;
+  let current = LEVELS[0];
+  for (const l of LEVELS) {
+    if (score >= l.min) current = l;
+    else break;
+  }
+  const next = LEVELS.find(l => l.lvl === current.lvl + 1) || null;
+  let progress = 100, need = 0;
+  if (next) {
+    const span = next.min - current.min;
+    progress = Math.max(0, Math.min(100, Math.round(((score - current.min) / span) * 100)));
+    need = next.min - score;
+  }
+  return { current, next, progress, need };
+}
 
     const user = tg.initDataUnsafe?.user;
     let seasonsCache = null;
@@ -583,10 +638,20 @@
       }
       document.getElementById('polls-done').textContent = pollsDone;
 
-      // 🏆 баллы (считает воркер, отдаёт в profile.score)
+            // 🏆 баллы (считает воркер, отдаёт в profile.score)
       if (profile.score !== undefined) {
         document.getElementById('score-count').textContent = profile.score;
       }
+
+      // 🎖 уровень
+      const lv = getLevel(profile.score);
+      document.getElementById('p-level-badge').textContent = lv.current.title;
+      document.getElementById('p-level-name').textContent = lv.current.title;
+      document.getElementById('p-level-num').textContent = 'Ур. ' + lv.current.lvl;
+      document.getElementById('p-level-fill').style.width = lv.progress + '%';
+      document.getElementById('p-level-hint').textContent = lv.next
+        ? `До «${lv.next.title}» — ещё ${lv.need} баллов`
+        : 'Максимальный уровень достигнут 👑';
 
       const awards = profile.awards || [];
       document.getElementById('awards-count').textContent = awards.length;
@@ -707,6 +772,7 @@
       const modal = document.getElementById('profile-modal');
       document.getElementById('m-name').textContent = 'Загрузка…';
       document.getElementById('m-place').textContent = '';
+      document.getElementById('m-level').style.display = 'none';
       document.getElementById('m-score').textContent = '0';
       document.getElementById('m-days').textContent = '0';
       document.getElementById('m-tasks').textContent = '0';
@@ -732,6 +798,11 @@
         document.getElementById('m-name').textContent = p.name;
         document.getElementById('m-place').textContent = place ? `${place} место в рейтинге` : '';
         document.getElementById('m-score').textContent = p.score;
+        // 🎖 уровень в модалке (считаем от score)
+        const mlv = getLevel(p.score);
+        const mLevelEl = document.getElementById('m-level');
+        mLevelEl.textContent = 'Ур. ' + mlv.current.lvl + ' · ' + mlv.current.title;
+        mLevelEl.style.display = 'inline-block';
         document.getElementById('m-days').textContent = p.days;
         document.getElementById('m-tasks').textContent = p.tasks;
         const aw = p.awards_list || [];
