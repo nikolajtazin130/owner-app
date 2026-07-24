@@ -736,7 +736,7 @@ function getLevel(score) {
       const lv = getLevel(profile.score);
       document.getElementById('p-level-badge').textContent = lv.current.title;
       document.getElementById('p-level-name').textContent = lv.current.title;
-      document.getElementById('p-level-num').textContent = 'Ур. ' + lv.current.lvl;
+      document.getElementById('p-level-num').textContent = 'Ур. ' + lv.current.lvl + '/' + LEVELS.length;
       document.getElementById('p-level-fill').style.width = lv.progress + '%';
       document.getElementById('p-level-hint').textContent = lv.next
         ? `До «${lv.next.title}» — ещё ${lv.need} баллов`
@@ -891,7 +891,7 @@ function getLevel(score) {
         // 🎖 уровень в модалке (считаем от score)
         const mlv = getLevel(p.score);
         const mLevelEl = document.getElementById('m-level');
-        mLevelEl.textContent = 'Ур. ' + mlv.current.lvl + ' · ' + mlv.current.title;
+        mLevelEl.textContent = 'Ур. ' + mlv.current.lvl + '/' + LEVELS.length + ' · ' + mlv.current.title;
         mLevelEl.style.display = 'inline-block';
         document.getElementById('m-days').textContent = p.days;
         document.getElementById('m-tasks').textContent = p.tasks;
