@@ -402,17 +402,18 @@ function getLevel(score) {
 
     function isRead(postId) { return READ_POSTS.includes(String(postId)); }
 
-    async function toggleRead(postId, ev) {
-      if (ev) ev.stopPropagation(); // 🚫 не даём открыться посту при клике по галочке
+        async function toggleRead(postId, ev) {
+      if (ev) ev.stopPropagation();
       postId = String(postId);
       tg.HapticFeedback?.impactOccurred('light');
 
       // оптимистично меняем локально
       const idx = READ_POSTS.indexOf(postId);
-      if (idx === -1) READ_POSTS.push(postId);
-      else READ_POSTS.splice(idx, 1);
+      const wasRead = idx !== -1;
+      if (wasRead) READ_POSTS.splice(idx, 1);
+      else READ_POSTS.push(postId);
 
-      // перерисовываем список сразу
+      // перерисовываем сразу
       if (currentSeasonLessons.length) renderLessons(currentSeasonLessons);
 
       try {
@@ -422,11 +423,18 @@ function getLevel(score) {
           body: JSON.stringify({ post_id: postId })
         });
         const data = await res.json();
-        if (data.ok) {
-          READ_POSTS = data.read_posts || READ_POSTS;
+        if (!data.ok) {
+          // сервер не сохранил — откатываем локально
+          const j = READ_POSTS.indexOf(postId);
+          if (wasRead && j === -1) READ_POSTS.push(postId);
+          if (!wasRead && j !== -1) READ_POSTS.splice(j, 1);
           if (currentSeasonLessons.length) renderLessons(currentSeasonLessons);
+          showToast('Не удалось сохранить');
         }
-      } catch (e) {}
+        // ✅ при успехе НЕ трогаем READ_POSTS — доверяем локальному состоянию
+      } catch (e) {
+        showToast('Нет сети — отметка сохранится позже');
+      }
     }
 
     function showScreen(id) {
