@@ -22,7 +22,8 @@
     .card:active { transform:scale(0.98); }
     .card h3 { font-size:17px; margin-bottom:6px; }
     .card p { font-size:13px; color:var(--hint); line-height:1.4; }
-    .badge { display:inline-block; font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:2px 10px; margin-bottom:10px; }
+    .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:2px 10px; margin-bottom:10px; }
+    .badge svg { display:block; }
     .card.locked { opacity:0.55; }
     .card.locked .badge { color:var(--hint); border-color:var(--hint); }
     .card .lock-icon { position:absolute; top:16px; right:18px; font-size:18px; opacity:0.8; }
@@ -238,9 +239,9 @@
       <div class="section-title">Сезоны</div>
       <div id="seasons-list"></div>
       <div class="section-title">Библиотека</div>
-      <div class="card" onclick="openLibrary('podcasts.json','🎙️ Подкасты','Аудио-разборы')"><span class="badge">🎙️ Аудио</span><h3>Подкасты</h3><p>Разборы, интервью, беседы</p></div>
-      <div class="card" onclick="openLibrary('videos.json','🎬 Видео','Разборы и лекции')"><span class="badge">🎬 Видео</span><h3>Видео</h3><p>Разборы и лекции</p></div>
-      <div class="card" onclick="openLibrary('books.json','📚 Книги','Рекомендованное чтение')"><span class="badge">📚 Чтение</span><h3>Книги</h3><p>Рекомендованная литература</p></div>
+      <div class="card" onclick="openLibrary('podcasts.json','Подкасты','Аудио-разборы')"><span class="badge"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg> Аудио</span><h3>Подкасты</h3><p>Разборы, интервью, беседы</p></div>
+<div class="card" onclick="openLibrary('videos.json','Видео','Разборы и лекции')"><span class="badge"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg> Видео</span><h3>Видео</h3><p>Разборы и лекции</p></div>
+<div class="card" onclick="openLibrary('books.json','Книги','Рекомендованное чтение')"><span class="badge"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></svg> Чтение</span><h3>Книги</h3><p>Рекомендованная литература</p></div>
     </div>
 
     <div id="tab-polls" class="tab-page hidden">
