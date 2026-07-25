@@ -88,10 +88,11 @@
     .rank-me .score { font-size:14px; color:var(--hint); margin-top:4px; }
     .rank-row { display:flex; align-items:center; gap:14px; background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.05); }
     .rank-row.self { border-color:var(--accent); }
-    .rank-row .rk-place { font-size:18px; font-weight:700; min-width:34px; text-align:center; color:var(--hint); }
-    .rank-row.top1 .rk-place { color:#ffd700; }
-    .rank-row.top2 .rk-place { color:#c0c0c0; }
-    .rank-row.top3 .rk-place { color:#cd7f32; }
+    .rank-row .rk-place { font-size:18px; font-weight:700; min-width:34px; text-align:center; color:var(--hint); display:flex; align-items:center; justify-content:center; }
+    .rank-row .rk-place svg { display:block; }
+    .rank-row.top1 .rk-place { color:#ffd700; }   /* золото */
+    .rank-row.top2 .rk-place { color:#c0c0c0; }   /* серебро */
+    .rank-row.top3 .rk-place { color:#cd7f32; }   /* бронза */
     .rank-row .rk-name { flex:1; font-size:15px; }
     .rank-row .rk-score { font-size:16px; font-weight:700; color:var(--accent); }
     .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.05); }
@@ -873,7 +874,8 @@ function getLevel(score) {
           if (row.place === 1) topClass = 'top1';
           else if (row.place === 2) topClass = 'top2';
           else if (row.place === 3) topClass = 'top3';
-          const medal = row.place === 1 ? '🥇' : row.place === 2 ? '🥈' : row.place === 3 ? '🥉' : row.place;
+          const MEDAL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></svg>';
+          const medal = row.place <= 3 ? MEDAL_SVG : row.place;
                     return `<div class="rank-row ${topClass} ${isSelf ? 'self' : ''}" style="cursor:pointer" onclick="openPublicProfile('${row.user_id}', ${row.place})">
                     <div class="rk-place">${medal}</div>
                     <div class="rk-name">${row.name}${isSelf ? ' (ты)' : ''}</div>
