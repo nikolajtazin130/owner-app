@@ -569,6 +569,17 @@ function getLevel(score) {
     let currentSurvey = null;
     let currentQ = 0;
     let currentScore = 0;
+    let currentAxisScores = {}; // { init:[5,4,..], hold:[...] }
+
+    // === ИКОНКИ АРХЕТИПОВ (Lucide) ===
+    const ARCH_ICONS = {
+      flame: '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+      rocket: '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>',
+      settings: '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+      shield: '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+      sprout: '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
+      'triangle-alert': '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>'
+    };
 
     async function openPoll(i) {
       tg.HapticFeedback?.impactOccurred('light');
@@ -576,7 +587,8 @@ function getLevel(score) {
       try {
         const res = await fetch(DATA_PATH + "survey_" + p.id + ".json?v=" + Date.now());
         currentSurvey = await res.json();
-        currentQ = 0; currentScore = 0;
+        currentQ = 0;
+        currentAxisScores = {}; // сбрасываем оси
         showScreen('survey-view');
         renderSurveyIntro();
       } catch (e) { showToast('Опрос временно недоступен'); }
@@ -659,9 +671,11 @@ function getLevel(score) {
       }
     }
 
-    function startSurvey() {
+        function startSurvey() {
       tg.HapticFeedback?.impactOccurred('medium');
-      currentQ = 0; currentScore = 0;
+      currentQ = 0;
+      currentScore = 0;
+      currentAxisScores = {};
       renderQuestion();
     }
 
@@ -671,14 +685,23 @@ function getLevel(score) {
       document.getElementById('survey-title').textContent = s.title;
       document.getElementById('survey-progress').textContent = `Вопрос ${currentQ + 1} из ${s.questions.length}`;
       const box = document.getElementById('survey-body');
-      box.innerHTML = `<div class="q-text">${q.q}</div>` +
-        q.a.map((ans) => `<div class="answer" onclick="answer(${ans.s})">${ans.t}</div>`).join('');
+      const total = s.questions.length;
+      const pct = Math.round((currentQ / total) * 100);
+      box.innerHTML =
+        '<div class="mar-progress" style="margin:0 0 18px;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="q-text">' + q.q + '</div>' +
+        q.a.map((ans, idx) => '<div class="answer" onclick="answer(' + idx + ')">' + ans.t + '</div>').join('');
       window.scrollTo(0, 0);
     }
 
-    function answer(score) {
+    function answer(idx) {
       tg.HapticFeedback?.impactOccurred('light');
+      const q = currentSurvey.questions[currentQ];
+      const score = q.a[idx].s;
+      const axis = q.axis || 'general';
       currentScore += score;
+      if (!currentAxisScores[axis]) currentAxisScores[axis] = [];
+      currentAxisScores[axis].push(score);
       currentQ++;
       if (currentQ < currentSurvey.questions.length) {
         renderQuestion();
@@ -687,27 +710,92 @@ function getLevel(score) {
       }
     }
 
-        function showResult() {
+            // считает % по каждой оси и выбирает архетип
+    function computeSurveyResult() {
       const s = currentSurvey;
-      const r = s.results.find(x => currentScore >= x.min) || s.results[s.results.length - 1];
-      document.getElementById('survey-progress').textContent = 'Результат';
-      document.getElementById('survey-body').innerHTML =
-        `<div class="result-box">
-           <div class="result-title">${r.title}</div>
-           <div class="result-score">${currentScore} баллов</div>
-           <div class="result-text">${r.text}</div>
-           <button class="join-btn" style="margin-top:24px" onclick="finishSurvey()">Готово</button>
-         </div>`;
-      tg.HapticFeedback?.notificationOccurred?.('success');
+      const axesMeta = s.axes || [];
+      const axisPct = {}; // key -> %
+      axesMeta.forEach(a => {
+        const arr = currentAxisScores[a.key] || [];
+        if (arr.length) {
+          const avg = arr.reduce((x, y) => x + y, 0) / arr.length; // 1..5
+          axisPct[a.key] = Math.round((avg / 5) * 100);
+        } else {
+          axisPct[a.key] = 0;
+        }
+      });
+      // общий средний
+      const vals = Object.values(axisPct);
+      const overall = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
 
-      // === сохраняем результат на сервере ===
+      // сильные / слабые оси
+      const sorted = axesMeta.map(a => ({ key: a.key, pct: axisPct[a.key] })).sort((a, b) => b.pct - a.pct);
+      const strong = sorted[0]?.key;
+      const weak = sorted[sorted.length - 1]?.key;
+
+      // выбор архетипа
+      let archId;
+      if (overall >= 80) archId = 'master';
+      else if (overall < 40) archId = 'chaos';
+      else if (overall < 55) archId = 'raw';
+      else {
+        // средне-высокий уровень: смотрим на сильную ось
+        if (strong === 'init' || strong === 'impulse') archId = 'sprinter';
+        else if (strong === 'system' || strong === 'delay') archId = 'engine';
+        else archId = 'fighter';
+      }
+      const arch = (s.archetypes || []).find(a => a.id === archId) || (s.archetypes || [])[0];
+      return { axisPct, overall, arch, strong, weak };
+    }
+
+    function showResult() {
+      const s = currentSurvey;
+      const R = computeSurveyResult();
+      document.getElementById('survey-progress').textContent = 'Результат';
+
+      const icon = ARCH_ICONS[R.arch.icon] || '';
+      const axesMeta = s.axes || [];
+
+      // полосы по осям (как в марафоне)
+      const bars = axesMeta.map(a => {
+        const pct = R.axisPct[a.key] || 0;
+        return '<div style="margin-bottom:12px;text-align:left;">' +
+          '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
+            '<span style="color:var(--text);">' + a.label + '</span>' +
+            '<span style="color:var(--accent);font-weight:700;">' + pct + '%</span>' +
+          '</div>' +
+          '<div class="mar-progress" style="margin:0;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>';
+      }).join('');
+
+      document.getElementById('survey-body').innerHTML =
+        '<div class="result-box">' +
+          '<div style="color:var(--accent);margin-bottom:10px;display:flex;justify-content:center;">' + icon + '</div>' +
+          '<div class="result-title">' + R.arch.title + '</div>' +
+          '<div class="result-score">' + R.overall + '% дисциплины</div>' +
+          '<canvas id="survey-radar" width="300" height="300" style="width:100%;max-width:300px;margin:10px auto;display:block;"></canvas>' +
+          '<div class="result-text" style="margin-bottom:20px;">' + R.arch.text + '</div>' +
+          '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
+          bars +
+          '<button class="join-btn" style="margin-top:24px;width:100%" onclick="finishSurvey()">Готово</button>' +
+        '</div>';
+
+      tg.HapticFeedback?.notificationOccurred?.('success');
+      drawRadar('survey-radar', axesMeta, R.axisPct);
+
+      // === сохраняем на сервер (расширенный scores, совместимый со старой историей) ===
       if (user?.id && currentSurvey?.id) {
         fetch(WORKER_URL + "?action=save_result&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             survey_id: currentSurvey.id,
-            scores: { total: currentScore, result: r.title }
+            scores: {
+              total: R.overall,
+              result: R.arch.title,
+              axes: R.axisPct,
+              archetype: R.arch.id
+            }
           })
         })
         .then(res => res.json())
@@ -716,27 +804,101 @@ function getLevel(score) {
             window.PROFILE = data.profile;
             renderProfileStats(data.profile);
           } else if (data.locked) {
-            // 🔒 сервер не засчитал — рано. Показываем честную заглушку вместо результата.
             const nextStr = fmtSurveyDate(data.next_date);
             const daysLeft = data.next_in_days || 0;
             document.getElementById('survey-progress').textContent = 'Замер недоступен';
             document.getElementById('survey-body').innerHTML =
-              `<div style="text-align:center;padding:20px 0;">
-                <div style="margin-bottom:14px;color:var(--accent);">${lockSvg(44)}</div>
-                 <div style="font-size:18px;font-weight:700;margin-bottom:10px;">Ещё рано для нового замера</div>
-                 <div style="font-size:14px;color:var(--hint);line-height:1.6;max-width:300px;margin:0 auto;">
-                   Этот опрос можно проходить раз в месяц.<br>
-                   Твой результат в этот раз <b>не сохранён</b>.<br><br>
-                   Следующий замер будет доступен<br>
-                   <span style="color:var(--accent);font-weight:700;">${nextStr}</span>
-                   ${daysLeft > 0 ? `<br><span style="color:var(--hint);">(через ${daysLeft} ${pluralDays(daysLeft)})</span>` : ''}
-                 </div>
-                 <button class="join-btn" style="margin-top:28px" onclick="finishSurvey()">Понятно</button>
-               </div>`;
+              '<div style="text-align:center;padding:20px 0;">' +
+              '<div style="margin-bottom:14px;color:var(--accent);">' + lockSvg(44) + '</div>' +
+              '<div style="font-size:18px;font-weight:700;margin-bottom:10px;">Ещё рано для нового замера</div>' +
+              '<div style="font-size:14px;color:var(--hint);line-height:1.6;max-width:300px;margin:0 auto;">' +
+              'Этот опрос можно проходить раз в месяц.<br>Твой результат в этот раз <b>не сохранён</b>.<br><br>' +
+              'Следующий замер будет доступен<br><span style="color:var(--accent);font-weight:700;">' + nextStr + '</span>' +
+              (daysLeft > 0 ? '<br><span style="color:var(--hint);">(через ' + daysLeft + ' ' + pluralDays(daysLeft) + ')</span>' : '') +
+              '</div><button class="join-btn" style="margin-top:28px" onclick="finishSurvey()">Понятно</button></div>';
             tg.HapticFeedback?.notificationOccurred?.('warning');
           }
         })
         .catch(() => {});
+      }
+    }
+
+    // === РАДАР на canvas (6 осей) ===
+    function drawRadar(canvasId, axesMeta, axisPct) {
+      const cv = document.getElementById(canvasId);
+      if (!cv) return;
+      const ctx = cv.getContext('2d');
+      const W = cv.width, H = cv.height;
+      const cx = W / 2, cy = H / 2;
+      const R = Math.min(W, H) / 2 - 46;
+      const n = axesMeta.length;
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c8a86b';
+      const hint = 'rgba(255,255,255,0.15)';
+      ctx.clearRect(0, 0, W, H);
+
+      // сетка (кольца)
+      for (let ring = 1; ring <= 4; ring++) {
+        const rr = R * ring / 4;
+        ctx.beginPath();
+        for (let i = 0; i <= n; i++) {
+          const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
+          const x = cx + rr * Math.cos(ang);
+          const y = cy + rr * Math.sin(ang);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = hint;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // лучи + подписи
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < n; i++) {
+        const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
+        const x = cx + R * Math.cos(ang);
+        const y = cy + R * Math.sin(ang);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = hint;
+        ctx.stroke();
+        const lx = cx + (R + 22) * Math.cos(ang);
+        const ly = cy + (R + 22) * Math.sin(ang);
+        ctx.fillText(axesMeta[i].label, lx, ly);
+      }
+
+      // фигура значений
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const idx = i % n;
+        const val = (axisPct[axesMeta[idx].key] || 0) / 100;
+        const ang = -Math.PI / 2 + idx * 2 * Math.PI / n;
+        const rr = R * val;
+        const x = cx + rr * Math.cos(ang);
+        const y = cy + rr * Math.sin(ang);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(200,168,107,0.25)';
+      ctx.fill();
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // точки
+      for (let i = 0; i < n; i++) {
+        const val = (axisPct[axesMeta[i].key] || 0) / 100;
+        const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
+        const rr = R * val;
+        const x = cx + rr * Math.cos(ang);
+        const y = cy + rr * Math.sin(ang);
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = accent;
+        ctx.fill();
       }
     }
 
