@@ -581,6 +581,21 @@ function getLevel(score) {
       'triangle-alert': '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>'
     };
 
+        function detectPattern(axisPct, survey){
+      const p = axisPct || {};
+      // сначала пробуем паттерны из самого опроса (survey.patterns)
+      const list = (survey && survey.patterns) || [];
+      for (const pat of list){
+        try {
+          const fn = (typeof pat._fn === 'function')
+            ? pat._fn
+            : (pat._fn = new Function('p', 'return (' + pat.test + ');'));
+          if (fn(p)) return pat;
+        } catch(e){}
+      }
+      return null;
+    }
+
     async function openPoll(i) {
       tg.HapticFeedback?.impactOccurred('light');
       const p = pollsCache[i];
@@ -794,6 +809,14 @@ function getLevel(score) {
           '<div class="result-score">' + R.overall + '% дисциплины</div>' +
           '<canvas id="survey-radar" width="300" height="300" style="width:100%;max-width:300px;margin:10px auto;display:block;"></canvas>' +
           '<div class="result-text" style="margin-bottom:20px;">' + R.arch.text + '</div>' +
+          (function(){
+            const pat = detectPattern(R.axisPct, currentSurvey);
+            return pat ? '<div class="section-title" style="margin:10px 0;">Твой паттерн</div>' +
+              '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin-bottom:8px;text-align:left;">' +
+                '<div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px;">' + pat.title + '</div>' +
+                '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
+              '</div>' : '';
+          })() +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
           bars +
           '<button class="join-btn" style="margin-top:24px;width:100%" onclick="finishSurvey()">Готово</button>' +
