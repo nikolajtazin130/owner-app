@@ -582,7 +582,7 @@ function getLevel(score) {
       } catch (e) { showToast('Опрос временно недоступен'); }
     }
 
-    function renderSurveyIntro() {
+        async function renderSurveyIntro() {
       const s = currentSurvey;
       document.getElementById('survey-title').textContent = s.title;
       document.getElementById('survey-progress').textContent = 'История прохождений';
@@ -610,12 +610,53 @@ function getLevel(score) {
         historyHtml = `<div class="empty" style="padding:20px 0;font-size:13px;">Ты ещё не проходил этот опрос</div>`;
       }
 
+      // 🔒 показываем заглушку "загрузка", пока проверяем статус на сервере
       document.getElementById('survey-body').innerHTML =
         historyHtml +
-        `<button class="join-btn" style="margin-top:20px;width:100%" onclick="startSurvey()">
-           ${history.length ? 'Пройти заново' : 'Начать опрос'}
-         </button>`;
+        `<div id="survey-cta" class="empty" style="padding:16px 0;">Проверяем доступ…</div>`;
       window.scrollTo(0, 0);
+
+      // 🔒 спрашиваем сервер: можно ли проходить сейчас?
+      let status = null;
+      try {
+        const res = await fetch(WORKER_URL + "?action=survey_status&user_id=" + user.id + "&survey_id=" + s.id);
+        status = await res.json();
+      } catch (e) { status = null; }
+
+      const cta = document.getElementById('survey-cta');
+      if (!cta) return; // пользователь ушёл с экрана
+
+      // если сервер недоступен — не блокируем жёстко, даём пройти (сервер всё равно отсеет)
+      if (!status || !status.ok) {
+        cta.outerHTML =
+          `<button class="join-btn" style="margin-top:20px;width:100%" onclick="startSurvey()">
+             ${history.length ? 'Пройти заново' : 'Начать опрос'}
+           </button>`;
+        return;
+      }
+
+      if (status.can_pass) {
+        // можно проходить
+        cta.outerHTML =
+          `<button class="join-btn" style="margin-top:20px;width:100%" onclick="startSurvey()">
+             ${history.length ? 'Пройти заново' : 'Начать опрос'}
+           </button>`;
+      } else {
+        // 🔒 рано — показываем заглушку с датой следующего замера
+        const nextStr = fmtSurveyDate(status.next_date);
+        const daysLeft = status.next_in_days || 0;
+        cta.outerHTML =
+          `<div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;padding:20px;margin-top:20px;text-align:center;">
+             <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+             <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Замер раз в месяц</div>
+             <div style="font-size:13px;color:var(--hint);line-height:1.5;">
+               Ты уже проходил этот опрос.<br>
+               Следующий замер будет доступен<br>
+               <span style="color:var(--accent);font-weight:700;">${nextStr}</span>
+               ${daysLeft > 0 ? `<br><span style="color:var(--hint);">(через ${daysLeft} ${pluralDays(daysLeft)})</span>` : ''}
+             </div>
+           </div>`;
+      }
     }
 
     function startSurvey() {
@@ -646,7 +687,7 @@ function getLevel(score) {
       }
     }
 
-    function showResult() {
+        function showResult() {
       const s = currentSurvey;
       const r = s.results.find(x => currentScore >= x.min) || s.results[s.results.length - 1];
       document.getElementById('survey-progress').textContent = 'Результат';
@@ -674,6 +715,25 @@ function getLevel(score) {
           if (data.ok && data.profile) {
             window.PROFILE = data.profile;
             renderProfileStats(data.profile);
+          } else if (data.locked) {
+            // 🔒 сервер не засчитал — рано. Показываем честную заглушку вместо результата.
+            const nextStr = fmtSurveyDate(data.next_date);
+            const daysLeft = data.next_in_days || 0;
+            document.getElementById('survey-progress').textContent = 'Замер недоступен';
+            document.getElementById('survey-body').innerHTML =
+              `<div style="text-align:center;padding:20px 0;">
+                 <div style="font-size:44px;margin-bottom:12px;">🔒</div>
+                 <div style="font-size:18px;font-weight:700;margin-bottom:10px;">Ещё рано для нового замера</div>
+                 <div style="font-size:14px;color:var(--hint);line-height:1.6;max-width:300px;margin:0 auto;">
+                   Этот опрос можно проходить раз в месяц.<br>
+                   Твой результат в этот раз <b>не сохранён</b>.<br><br>
+                   Следующий замер будет доступен<br>
+                   <span style="color:var(--accent);font-weight:700;">${nextStr}</span>
+                   ${daysLeft > 0 ? `<br><span style="color:var(--hint);">(через ${daysLeft} ${pluralDays(daysLeft)})</span>` : ''}
+                 </div>
+                 <button class="join-btn" style="margin-top:28px" onclick="finishSurvey()">Понятно</button>
+               </div>`;
+            tg.HapticFeedback?.notificationOccurred?.('warning');
           }
         })
         .catch(() => {});
@@ -1429,6 +1489,23 @@ function getLevel(score) {
     function fmtDate(str) {
       if (!str) return '';
       return new Date(str).toLocaleDateString('ru-RU');
+    }
+
+        // 🔒 форматирование даты следующего замера опроса (принимает timestamp в мс)
+    function fmtSurveyDate(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    // 🔒 склонение слова "день"
+    function pluralDays(n) {
+      n = Math.abs(n) % 100;
+      const n1 = n % 10;
+      if (n > 10 && n < 20) return 'дней';
+      if (n1 > 1 && n1 < 5) return 'дня';
+      if (n1 === 1) return 'день';
+      return 'дней';
     }
 
     function backFromMarathon() {
