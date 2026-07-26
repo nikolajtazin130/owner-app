@@ -842,17 +842,18 @@ function getLevel(score) {
 
       // ретина-чёткость
       const dpr = window.devicePixelRatio || 1;
-      const cssSize = 300;
-      cv.width = cssSize * dpr;
-      cv.height = cssSize * dpr;
-      cv.style.width = cssSize + 'px';
-      cv.style.height = cssSize + 'px';
+      const cssW = 340, cssH = 300;
+      cv.width = cssW * dpr;
+      cv.height = cssH * dpr;
+      cv.style.width = '100%';
+      cv.style.maxWidth = cssW + 'px';
+      cv.style.height = 'auto';
       const ctx = cv.getContext('2d');
       ctx.scale(dpr, dpr);
 
-      const W = cssSize, H = cssSize;
+      const W = cssW, H = cssH;
       const cx = W / 2, cy = H / 2;
-      const R = Math.min(W, H) / 2 - 54; // место под подписи
+      const R = Math.min(W, H) / 2 - 50; // место под подписи
       const n = axesMeta.length;
       axisAvg = axisAvg || {};
 
@@ -940,9 +941,20 @@ function getLevel(score) {
         ctx.fill();
 
         // позиция подписи (за пределами радара)
-        const lx = cx + (R + 30) * Math.cos(ang);
-        const ly = cy + (R + 30) * Math.sin(ang);
-        ctx.textAlign = Math.abs(Math.cos(ang)) < 0.3 ? 'center' : (Math.cos(ang) > 0 ? 'left' : 'right');
+        const cosA = Math.cos(ang), sinA = Math.sin(ang);
+        let lx = cx + (R + 26) * cosA;
+        let ly = cy + (R + 26) * sinA;
+
+        // выравнивание по краю и прижим боковых подписей внутрь холста
+        if (Math.abs(cosA) < 0.3) {
+          ctx.textAlign = 'center';
+        } else if (cosA > 0) {
+          ctx.textAlign = 'right';   // правые — прижимаем к правому краю
+          lx = W - 4;
+        } else {
+          ctx.textAlign = 'left';    // левые — прижимаем к левому краю
+          lx = 4;
+        }
 
         // название оси
         ctx.fillStyle = (key === weakKey) ? weakCol : textCol;
