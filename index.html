@@ -647,7 +647,7 @@ function getLevel(score) {
         const daysLeft = status.next_in_days || 0;
         cta.outerHTML =
           `<div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;padding:20px;margin-top:20px;text-align:center;">
-             <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+            <div style="margin-bottom:10px;color:var(--accent);">${lockSvg(32)}</div>
              <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Замер раз в месяц</div>
              <div style="font-size:13px;color:var(--hint);line-height:1.5;">
                Ты уже проходил этот опрос.<br>
@@ -722,7 +722,7 @@ function getLevel(score) {
             document.getElementById('survey-progress').textContent = 'Замер недоступен';
             document.getElementById('survey-body').innerHTML =
               `<div style="text-align:center;padding:20px 0;">
-                 <div style="font-size:44px;margin-bottom:12px;">🔒</div>
+                <div style="margin-bottom:14px;color:var(--accent);">${lockSvg(44)}</div>
                  <div style="font-size:18px;font-weight:700;margin-bottom:10px;">Ещё рано для нового замера</div>
                  <div style="font-size:14px;color:var(--hint);line-height:1.6;max-width:300px;margin:0 auto;">
                    Этот опрос можно проходить раз в месяц.<br>
@@ -1029,6 +1029,12 @@ function getLevel(score) {
       }
     }
 
+        // 🔒 иконка замка (как в заблокированных сезонах) — размер подставляется параметром
+    function lockSvg(size) {
+      size = size || 24;
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+    }
+    
     // 🫶 === РЕАКЦИИ ===
     const REACTIONS = ["🫶", "👍", "💪"]; // должны совпадать с воркером
 
