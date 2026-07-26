@@ -784,7 +784,36 @@ function getLevel(score) {
       }
     }
 
-        function startSurvey() {
+      function startSurvey() {
+      tg.HapticFeedback?.impactOccurred('medium');
+      renderSurveyDisclaimer();
+    }
+
+    function renderSurveyDisclaimer() {
+      const s = currentSurvey;
+
+      // нет disclaimer в JSON опроса — пропускаем экран, сразу к вопросам
+      if (!s.disclaimer) { beginQuestions(); return; }
+
+      document.getElementById('survey-title').textContent = s.title;
+      document.getElementById('survey-progress').textContent = 'Перед началом';
+      document.getElementById('survey-body').innerHTML =
+        '<div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;padding:20px;margin-bottom:20px;text-align:left;">' +
+          '<div style="font-size:14px;color:var(--text);line-height:1.6;">' + s.disclaimer + '</div>' +
+        '</div>' +
+        '<button class="join-btn" style="width:100%" onclick="beginQuestions()">Понятно, начать</button>';
+      window.scrollTo(0, 0);
+    }
+
+    function beginQuestions() {
+      tg.HapticFeedback?.impactOccurred('medium');
+      currentQ = 0;
+      currentScore = 0;
+      currentAxisScores = {};
+      renderQuestion();
+    }
+
+    function beginQuestions() {
       tg.HapticFeedback?.impactOccurred('medium');
       currentQ = 0;
       currentScore = 0;
