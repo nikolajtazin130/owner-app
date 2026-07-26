@@ -720,12 +720,15 @@ function getLevel(score) {
       const s = currentSurvey;
       const axesMeta = s.axes || [];
       const axisPct = {}; // key -> %
+      const axisAvg = {}; // key -> средний балл 1..5
       axesMeta.forEach(a => {
         const arr = currentAxisScores[a.key] || [];
         if (arr.length) {
           const avg = arr.reduce((x, y) => x + y, 0) / arr.length; // 1..5
+          axisAvg[a.key] = Math.round(avg * 10) / 10; // округляем до 0.1
           axisPct[a.key] = Math.round((avg / 5) * 100);
         } else {
+          axisAvg[a.key] = 0;
           axisPct[a.key] = 0;
         }
       });
@@ -750,7 +753,7 @@ function getLevel(score) {
         else archId = 'fighter';
       }
       const arch = (s.archetypes || []).find(a => a.id === archId) || (s.archetypes || [])[0];
-      return { axisPct, overall, arch, strong, weak };
+      return { axisPct, axisAvg, overall, arch, strong, weak };
     }
 
     function showResult() {
@@ -786,7 +789,7 @@ function getLevel(score) {
         '</div>';
 
       tg.HapticFeedback?.notificationOccurred?.('success');
-      drawRadar('survey-radar', axesMeta, R.axisPct);
+      drawRadar('survey-radar', axesMeta, R.axisPct, R.axisAvg, R.weak, R.strong);
 
       // === сохраняем на сервер (расширенный scores, совместимый со старой историей) ===
       if (user?.id && currentSurvey?.id) {
@@ -794,11 +797,14 @@ function getLevel(score) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            survey_id: currentSurvey.id,
+          survey_id: currentSurvey.id,
             scores: {
               total: R.overall,
               result: R.arch.title,
               axes: R.axisPct,
+              axisAvg: R.axisAvg,
+              strong: R.strong,
+              weak: R.weak,
               archetype: R.arch.id
             }
           })
@@ -828,22 +834,39 @@ function getLevel(score) {
       }
     }
 
-    // === РАДАР на canvas (6 осей) ===
-    function drawRadar(canvasId, axesMeta, axisPct) {
+    // === РАДАР на canvas с дробями X.X/5 ===
+    // axisPct: {key:%}, axisAvg: {key:1..5}, weakKey/strongKey — для подсветки
+    function drawRadar(canvasId, axesMeta, axisPct, axisAvg, weakKey, strongKey) {
       const cv = document.getElementById(canvasId);
       if (!cv) return;
+
+      // ретина-чёткость
+      const dpr = window.devicePixelRatio || 1;
+      const cssSize = 300;
+      cv.width = cssSize * dpr;
+      cv.height = cssSize * dpr;
+      cv.style.width = cssSize + 'px';
+      cv.style.height = cssSize + 'px';
       const ctx = cv.getContext('2d');
-      const W = cv.width, H = cv.height;
+      ctx.scale(dpr, dpr);
+
+      const W = cssSize, H = cssSize;
       const cx = W / 2, cy = H / 2;
-      const R = Math.min(W, H) / 2 - 46;
+      const R = Math.min(W, H) / 2 - 54; // место под подписи
       const n = axesMeta.length;
-      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c8a86b';
-      const hint = 'rgba(255,255,255,0.15)';
+      axisAvg = axisAvg || {};
+
+      const styles = getComputedStyle(document.documentElement);
+      const accent = (styles.getPropertyValue('--accent').trim()) || '#c8a86b';
+      const textCol = (styles.getPropertyValue('--text').trim()) || '#111';
+      const gridCol = 'rgba(140,140,140,0.28)';
+      const weakCol = '#e5484d';
+
       ctx.clearRect(0, 0, W, H);
 
-      // сетка (кольца)
-      for (let ring = 1; ring <= 4; ring++) {
-        const rr = R * ring / 4;
+      // --- кольца-шкала (5 уровней = баллы 1..5) ---
+      for (let ring = 1; ring <= 5; ring++) {
+        const rr = R * ring / 5;
         ctx.beginPath();
         for (let i = 0; i <= n; i++) {
           const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
@@ -851,31 +874,33 @@ function getLevel(score) {
           const y = cy + rr * Math.sin(ang);
           i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = hint;
+        ctx.strokeStyle = gridCol;
+        ctx.lineWidth = ring === 5 ? 1.4 : 1;
+        ctx.stroke();
+      }
+
+      // цифры шкалы по вертикали (1..5)
+      ctx.fillStyle = 'rgba(140,140,140,0.75)';
+      ctx.font = '9px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let ring = 1; ring <= 5; ring++) {
+        const rr = R * ring / 5;
+        ctx.fillText(ring, cx + 8, cy - rr);
+      }
+
+      // --- лучи ---
+      for (let i = 0; i < n; i++) {
+        const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + R * Math.cos(ang), cy + R * Math.sin(ang));
+        ctx.strokeStyle = gridCol;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
 
-      // лучи + подписи
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.font = '11px -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (let i = 0; i < n; i++) {
-        const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
-        const x = cx + R * Math.cos(ang);
-        const y = cy + R * Math.sin(ang);
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(x, y);
-        ctx.strokeStyle = hint;
-        ctx.stroke();
-        const lx = cx + (R + 22) * Math.cos(ang);
-        const ly = cy + (R + 22) * Math.sin(ang);
-        ctx.fillText(axesMeta[i].label, lx, ly);
-      }
-
-      // фигура значений
+      // --- фигура значений ---
       ctx.beginPath();
       for (let i = 0; i <= n; i++) {
         const idx = i % n;
@@ -887,23 +912,48 @@ function getLevel(score) {
         i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
       ctx.closePath();
-      ctx.fillStyle = 'rgba(200,168,107,0.25)';
+      ctx.fillStyle = 'rgba(200,168,107,0.22)';
       ctx.fill();
       ctx.strokeStyle = accent;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
       ctx.stroke();
 
-      // точки
+      // --- точки + подписи с дробями ---
+      ctx.font = '600 12px -apple-system, sans-serif';
       for (let i = 0; i < n; i++) {
-        const val = (axisPct[axesMeta[i].key] || 0) / 100;
+        const key = axesMeta[i].key;
+        const val = (axisPct[key] || 0) / 100;
         const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
         const rr = R * val;
-        const x = cx + rr * Math.cos(ang);
-        const y = cy + rr * Math.sin(ang);
+        const px = cx + rr * Math.cos(ang);
+        const py = cy + rr * Math.sin(ang);
+
+        // цвет вершины: слабая = красный, сильная = золото, остальное = акцент
+        let dotCol = accent;
+        if (key === weakKey) dotCol = weakCol;
+        else if (key === strongKey) dotCol = accent;
+
+        // точка
         ctx.beginPath();
-        ctx.arc(x, y, 3, 0, 2 * Math.PI);
-        ctx.fillStyle = accent;
+        ctx.arc(px, py, key === weakKey || key === strongKey ? 4.5 : 3.2, 0, 2 * Math.PI);
+        ctx.fillStyle = dotCol;
         ctx.fill();
+
+        // позиция подписи (за пределами радара)
+        const lx = cx + (R + 30) * Math.cos(ang);
+        const ly = cy + (R + 30) * Math.sin(ang);
+        ctx.textAlign = Math.abs(Math.cos(ang)) < 0.3 ? 'center' : (Math.cos(ang) > 0 ? 'left' : 'right');
+
+        // название оси
+        ctx.fillStyle = (key === weakKey) ? weakCol : textCol;
+        ctx.font = '600 12px -apple-system, sans-serif';
+        ctx.fillText(axesMeta[i].label, lx, ly - 7);
+
+        // дробь X.X/5
+        const avg = axisAvg[key] != null ? axisAvg[key].toFixed(1) : '0.0';
+        ctx.fillStyle = (key === weakKey) ? weakCol : accent;
+        ctx.font = '700 13px -apple-system, sans-serif';
+        ctx.fillText(avg + '/5', lx, ly + 8);
       }
     }
 
@@ -953,7 +1003,7 @@ function getLevel(score) {
           '<button class="join-btn" style="margin-top:24px;width:100%" onclick="renderSurveyIntro()">← К истории</button>' +
         '</div>';
 
-      drawRadar('past-radar', axesMeta, axisPct);
+      drawRadar('past-radar', axesMeta, axisPct, sc.axisAvg || {}, sc.weak, sc.strong);
       window.scrollTo(0, 0);
     }
     
