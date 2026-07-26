@@ -813,14 +813,6 @@ function getLevel(score) {
       renderQuestion();
     }
 
-    function beginQuestions() {
-      tg.HapticFeedback?.impactOccurred('medium');
-      currentQ = 0;
-      currentScore = 0;
-      currentAxisScores = {};
-      renderQuestion();
-    }
-
     function renderQuestion() {
       const s = currentSurvey;
       const q = s.questions[currentQ];
@@ -880,16 +872,43 @@ function getLevel(score) {
       const strong = sorted[0]?.key;
       const weak = sorted[sorted.length - 1]?.key;
 
-      let archId;
-      if (overall >= 80) archId = 'master';
-      else if (overall < 40) archId = 'chaos';
-      else if (overall < 55) archId = 'raw';
-      else {
-        if (strong === 'init' || strong === 'impulse') archId = 'sprinter';
-        else if (strong === 'system' || strong === 'delay') archId = 'engine';
-        else archId = 'fighter';
+            // выбор архетипа
+      let arch = null;
+
+      // Вариант 2: правила из JSON (если заданы) — как в patterns
+      if (Array.isArray(s.archetypeRules) && s.archetypeRules.length) {
+        const ctx = { p: axisPct, overall, strong, weak };
+        for (const rule of s.archetypeRules) {
+          try {
+            const fn = (typeof rule._fn === 'function')
+              ? rule._fn
+              : (rule._fn = new Function('p', 'overall', 'strong', 'weak',
+                  'return (' + rule.test + ');'));
+            if (fn(ctx.p, ctx.overall, ctx.strong, ctx.weak)) {
+              arch = (s.archetypes || []).find(a => a.id === rule.id);
+              if (arch) break;
+            }
+          } catch (e) {}
+        }
       }
-      const arch = (s.archetypes || []).find(a => a.id === archId) || (s.archetypes || [])[0];
+
+      // Fallback: старая жёсткая логика (для test1 с осями init/hold/...)
+      if (!arch) {
+        let archId;
+        if (overall >= 80) archId = 'master';
+        else if (overall < 40) archId = 'chaos';
+        else if (overall < 55) archId = 'raw';
+        else {
+          if (strong === 'init' || strong === 'impulse') archId = 'sprinter';
+          else if (strong === 'system' || strong === 'delay') archId = 'engine';
+          else archId = 'fighter';
+        }
+        arch = (s.archetypes || []).find(a => a.id === archId);
+      }
+
+      // Последняя подстраховка
+      if (!arch) arch = (s.archetypes || [])[0];
+
       return { axisPct, axisAvg, overall, arch, strong, weak, scaleMax: SCALE_MAX };
     }
 
@@ -928,7 +947,7 @@ function getLevel(score) {
         '<div class="result-box">' +
           '<div style="color:var(--accent);margin-bottom:10px;display:flex;justify-content:center;">' + icon + '</div>' +
           '<div class="result-title">' + R.arch.title + '</div>' +
-          '<div class="result-score">' + R.overall + '% дисциплины</div>' +
+          '<div class="result-score">' + R.overall + '% ' + (s.scoreLabel || currentSurvey.scoreLabel || '') + '</div>' +
           '<canvas id="survey-radar" width="300" height="300" style="width:100%;max-width:300px;margin:10px auto;display:block;"></canvas>' +
           '<div class="result-text" style="margin-bottom:20px;">' + R.arch.text + '</div>' +
           (function(){
@@ -1168,7 +1187,7 @@ function getLevel(score) {
         '<div class="result-box">' +
           (icon ? '<div style="color:var(--accent);margin-bottom:10px;display:flex;justify-content:center;">' + icon + '</div>' : '') +
           '<div class="result-title">' + title + '</div>' +
-          '<div class="result-score">' + (sc.total ?? 0) + '% дисциплины</div>' +
+          '<div class="result-score">' + (sc.total ?? 0) + '% ' + (s.scoreLabel || '') + '</div>' +
           '<canvas id="past-radar" width="300" height="300" style="width:100%;max-width:300px;margin:10px auto;display:block;"></canvas>' +
           (text ? '<div class="result-text" style="margin-bottom:20px;">' + text + '</div>' : '') +
           axisLever(currentSurvey, sc.weak) +
