@@ -1190,6 +1190,14 @@ function getLevel(score) {
           '<div class="result-score">' + (sc.total ?? 0) + '% ' + (s.scoreLabel || '') + '</div>' +
           '<canvas id="past-radar" width="300" height="300" style="width:100%;max-width:300px;margin:10px auto;display:block;"></canvas>' +
           (text ? '<div class="result-text" style="margin-bottom:20px;">' + text + '</div>' : '') +
+          (function(){
+            const pat = detectPattern(axisPct, currentSurvey);
+            return pat ? '<div class="section-title" style="margin:10px 0;">Твой паттерн</div>' +
+              '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin-bottom:8px;text-align:left;">' +
+                '<div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px;">' + pat.title + '</div>' +
+                '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
+              '</div>' : '';
+          })() +
           axisLever(currentSurvey, sc.weak) +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
           bars +
