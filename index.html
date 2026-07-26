@@ -581,6 +581,13 @@ function getLevel(score) {
       'triangle-alert': '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>'
     };
 
+    // === ИКОНКИ ДИНАМИКИ (Lucide) ===
+    const TREND_ICONS = {
+      up: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>',
+      down: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/></svg>',
+      flat: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>'
+    };
+
         function detectPattern(axisPct, survey){
       const p = axisPct || {};
       // сначала пробуем паттерны из самого опроса (survey.patterns)
@@ -605,6 +612,78 @@ function getLevel(score) {
         if (pct >= (v.min || 0)) return v.t || '';
       }
       return '';
+    }
+
+        // 🥇 Уровень 3: узкое место + рычаг (по самой слабой оси)
+    function axisLever(survey, weakKey) {
+      const map = (survey && survey.levers) || {};
+      const lv = map[weakKey];
+      if (!lv) return '';
+      return '<div class="section-title" style="margin:10px 0;">Твоё узкое место</div>' +
+        '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin-bottom:8px;text-align:left;">' +
+          '<div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px;">' + (lv.title || '') + '</div>' +
+          '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + (lv.text || '') + '</div>' +
+        '</div>';
+    }
+
+        // 📈 Динамика: сравнение с прошлым замером
+    function renderDynamics(survey, currentOverall) {
+      const dyn = survey && survey.dynamics;
+      if (!dyn) return '';
+
+      // берём историю прошлых прохождений этого опроса
+      const history = (window.PROFILE?.results?.[survey.id]) || [];
+      // первое прохождение — сравнивать не с чем
+      if (!history.length) return '';
+
+      // последний сохранённый = предыдущий замер (текущий ещё не сохранён в PROFILE)
+      const prevItem = history[history.length - 1];
+      const prevOverall = prevItem?.scores?.total;
+      if (prevOverall == null) return '';
+
+      const prevAxes = prevItem?.scores?.axes || {};
+      const curAxes = (window.__lastResult && window.__lastResult.axisPct) || {};
+
+      const diff = currentOverall - prevOverall;
+
+      // ищем лучшую и худшую ось по изменению
+      const axesMeta = survey.axes || [];
+      let bestAxis = '', bestDiff = -Infinity;
+      let worstAxis = '', worstDiff = Infinity;
+      axesMeta.forEach(a => {
+        const pv = prevAxes[a.key];
+        const cv = curAxes[a.key];
+        if (pv == null || cv == null) return;
+        const d = cv - pv;
+        if (d > bestDiff) { bestDiff = d; bestAxis = a.label; }
+        if (d < worstDiff) { worstDiff = d; worstAxis = a.label; }
+      });
+
+      // выбираем блок
+      let block, icon, sign;
+      if (diff >= 3) { block = dyn.up; icon = TREND_ICONS.up; sign = ''; }
+      else if (diff <= -3) { block = dyn.down; icon = TREND_ICONS.down; sign = ''; }
+      else { block = dyn.flat; icon = TREND_ICONS.flat; }
+      if (!block) return '';
+
+      // подстановка плейсхолдеров
+      let text = (block.text || '')
+        .replace(/{prev}/g, prevOverall)
+        .replace(/{curr}/g, currentOverall)
+        .replace(/{diff}/g, diff)          // для up знак "+" уже в тексте; для down число само с минусом
+        .replace(/{bestAxis}/g, bestAxis || '—')
+        .replace(/{bestDiff}/g, bestDiff > -Infinity ? bestDiff : 0)
+        .replace(/{worstAxis}/g, worstAxis || '—')
+        .replace(/{worstDiff}/g, worstDiff < Infinity ? worstDiff : 0);
+
+      return '<div class="section-title" style="margin:10px 0;">Динамика</div>' +
+        '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin-bottom:8px;text-align:left;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--accent);">' +
+            icon +
+            '<span style="font-size:16px;font-weight:700;">' + (block.title || '') + '</span>' +
+          '</div>' +
+          '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + text + '</div>' +
+        '</div>';
     }
 
     async function openPoll(i) {
@@ -796,6 +875,7 @@ function getLevel(score) {
     function showResult() {
       const s = currentSurvey;
       const R = computeSurveyResult();
+      window.__lastResult = R;
       document.getElementById('survey-progress').textContent = 'Результат';
 
       const icon = ARCH_ICONS[R.arch.icon] || '';
@@ -830,6 +910,8 @@ function getLevel(score) {
                 '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
               '</div>' : '';
           })() +
+          renderDynamics(currentSurvey, R.overall) +
+          axisLever(currentSurvey, R.weak) +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
           bars +
           '<button class="join-btn" style="margin-top:24px;width:100%" onclick="finishSurvey()">Готово</button>' +
@@ -1060,6 +1142,7 @@ function getLevel(score) {
           '<div class="result-score">' + (sc.total ?? 0) + '% дисциплины</div>' +
           '<canvas id="past-radar" width="300" height="300" style="width:100%;max-width:300px;margin:10px auto;display:block;"></canvas>' +
           (text ? '<div class="result-text" style="margin-bottom:20px;">' + text + '</div>' : '') +
+          axisLever(currentSurvey, sc.weak) +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
           bars +
           '<button class="join-btn" style="margin-top:24px;width:100%" onclick="renderSurveyIntro()">← К истории</button>' +
