@@ -602,19 +602,24 @@ function getLevel(score) {
       const history = (window.PROFILE?.results?.[s.id]) || [];
       let historyHtml = '';
 
-      if (history.length) {
-        const rows = history.slice().reverse().map(item => {
+            if (history.length) {
+        window.SURVEY_HISTORY = history.slice(); // сохраняем для просмотра деталей
+        const rows = history.map((item, realIdx) => ({ item, realIdx })).reverse().map(({ item, realIdx }) => {
           const d = new Date(item.date);
           const dateStr = d.toLocaleDateString('ru-RU') + ' ' +
                           d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
           const total = item.scores?.total ?? '—';
           const title = item.scores?.result || '';
-          return `<div class="hist-item">
+          const hasAxes = item.scores?.axes && Object.keys(item.scores.axes).length;
+          const arrow = hasAxes ? '<div style="color:var(--accent);font-size:18px;">›</div>' : '';
+          const clickAttr = hasAxes ? ` style="cursor:pointer" onclick="openPastResult(${realIdx})"` : '';
+          return `<div class="hist-item"${clickAttr}>
                     <div class="hist-score">${total}</div>
                     <div class="hist-info">
                       <h4>${title}</h4>
                       <p>${dateStr}</p>
                     </div>
+                    ${arrow}
                   </div>`;
         }).join('');
         historyHtml = `<div class="section-title" style="margin-top:0">Прошлые результаты</div>${rows}`;
@@ -902,6 +907,56 @@ function getLevel(score) {
       }
     }
 
+        // 📊 Просмотр прошлого результата опроса (радар + оси + архетип)
+    window.SURVEY_HISTORY = [];
+    function openPastResult(idx) {
+      tg.HapticFeedback?.impactOccurred('light');
+      const item = window.SURVEY_HISTORY[idx];
+      if (!item || !item.scores) return;
+      const sc = item.scores;
+      const s = currentSurvey;
+      const axesMeta = s.axes || [];
+      const axisPct = sc.axes || {};
+
+      const d = new Date(item.date);
+      const dateStr = d.toLocaleDateString('ru-RU') + ' ' +
+                      d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+      // архетип по сохранённому id (если есть)
+      const arch = (s.archetypes || []).find(a => a.id === sc.archetype) || null;
+      const icon = arch ? (ARCH_ICONS[arch.icon] || '') : '';
+      const title = arch ? arch.title : (sc.result || 'Результат');
+      const text = arch ? arch.text : '';
+
+      // полосы по осям
+      const bars = axesMeta.map(a => {
+        const pct = axisPct[a.key] || 0;
+        return '<div style="margin-bottom:12px;text-align:left;">' +
+          '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
+            '<span style="color:var(--text);">' + a.label + '</span>' +
+            '<span style="color:var(--accent);font-weight:700;">' + pct + '%</span>' +
+          '</div>' +
+          '<div class="mar-progress" style="margin:0;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>';
+      }).join('');
+
+      document.getElementById('survey-progress').textContent = 'Результат от ' + dateStr;
+      document.getElementById('survey-body').innerHTML =
+        '<div class="result-box">' +
+          (icon ? '<div style="color:var(--accent);margin-bottom:10px;display:flex;justify-content:center;">' + icon + '</div>' : '') +
+          '<div class="result-title">' + title + '</div>' +
+          '<div class="result-score">' + (sc.total ?? 0) + '% дисциплины</div>' +
+          '<canvas id="past-radar" width="300" height="300" style="width:100%;max-width:300px;margin:10px auto;display:block;"></canvas>' +
+          (text ? '<div class="result-text" style="margin-bottom:20px;">' + text + '</div>' : '') +
+          '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
+          bars +
+          '<button class="join-btn" style="margin-top:24px;width:100%" onclick="renderSurveyIntro()">← К истории</button>' +
+        '</div>';
+
+      drawRadar('past-radar', axesMeta, axisPct);
+      window.scrollTo(0, 0);
+    }
+    
         function finishSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
     function backFromSurvey() { tg.HapticFeedback?.impactOccurred('light'); showScreen('app'); switchTab('polls'); }
 
