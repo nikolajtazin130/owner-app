@@ -596,6 +596,17 @@ function getLevel(score) {
       return null;
     }
 
+        // 🥉 Уровень 1: вердикт по одной оси (первый подходящий порог сверху)
+    function axisVerdict(survey, axisKey, pct) {
+      const map = (survey && survey.verdicts) || {};
+      const list = map[axisKey];
+      if (!Array.isArray(list)) return '';
+      for (const v of list) {
+        if (pct >= (v.min || 0)) return v.t || '';
+      }
+      return '';
+    }
+
     async function openPoll(i) {
       tg.HapticFeedback?.impactOccurred('light');
       const p = pollsCache[i];
@@ -790,15 +801,17 @@ function getLevel(score) {
       const icon = ARCH_ICONS[R.arch.icon] || '';
       const axesMeta = s.axes || [];
 
-      // полосы по осям (как в марафоне)
+      // полосы по осям + вердикт под каждой (Уровень 1)
       const bars = axesMeta.map(a => {
         const pct = R.axisPct[a.key] || 0;
-        return '<div style="margin-bottom:12px;text-align:left;">' +
+        const vrd = axisVerdict(currentSurvey, a.key, pct);
+        return '<div style="margin-bottom:16px;text-align:left;">' +
           '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
             '<span style="color:var(--text);">' + a.label + '</span>' +
             '<span style="color:var(--accent);font-weight:700;">' + pct + '%</span>' +
           '</div>' +
           '<div class="mar-progress" style="margin:0;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+          (vrd ? '<div style="font-size:12px;color:var(--hint);line-height:1.45;margin-top:6px;">' + vrd + '</div>' : '') +
         '</div>';
       }).join('');
 
@@ -1028,12 +1041,14 @@ function getLevel(score) {
       // полосы по осям
       const bars = axesMeta.map(a => {
         const pct = axisPct[a.key] || 0;
-        return '<div style="margin-bottom:12px;text-align:left;">' +
+        const vrd = axisVerdict(currentSurvey, a.key, pct);
+        return '<div style="margin-bottom:16px;text-align:left;">' +
           '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
             '<span style="color:var(--text);">' + a.label + '</span>' +
             '<span style="color:var(--accent);font-weight:700;">' + pct + '%</span>' +
           '</div>' +
           '<div class="mar-progress" style="margin:0;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+          (vrd ? '<div style="font-size:12px;color:var(--hint);line-height:1.45;margin-top:6px;">' + vrd + '</div>' : '') +
         '</div>';
       }).join('');
 
