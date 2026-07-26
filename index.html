@@ -601,6 +601,9 @@ function getLevel(score) {
 
       const history = (window.PROFILE?.results?.[s.id]) || [];
       let historyHtml = '';
+      if (s.intro) {
+        historyHtml += '<div style="background:var(--card);border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--hint);line-height:1.5;">' + s.intro + '</div>';
+      }
 
             if (history.length) {
         window.SURVEY_HISTORY = history.slice(); // сохраняем для просмотра деталей
@@ -715,45 +718,53 @@ function getLevel(score) {
       }
     }
 
-            // считает % по каждой оси и выбирает архетип
+    // считает % по каждой оси и выбирает архетип
     function computeSurveyResult() {
       const s = currentSurvey;
       const axesMeta = s.axes || [];
+
+      // 🔧 определяем максимальный балл ответа (было жёстко "5")
+      const SCALE_MAX = getScaleMax(s);
+
       const axisPct = {}; // key -> %
-      const axisAvg = {}; // key -> средний балл 1..5
+      const axisAvg = {}; // key -> средний балл
       axesMeta.forEach(a => {
         const arr = currentAxisScores[a.key] || [];
         if (arr.length) {
-          const avg = arr.reduce((x, y) => x + y, 0) / arr.length; // 1..5
-          axisAvg[a.key] = Math.round(avg * 10) / 10; // округляем до 0.1
-          axisPct[a.key] = Math.round((avg / 5) * 100);
+          const avg = arr.reduce((x, y) => x + y, 0) / arr.length;
+          axisAvg[a.key] = Math.round(avg * 10) / 10;
+          axisPct[a.key] = Math.round((avg / SCALE_MAX) * 100);
         } else {
           axisAvg[a.key] = 0;
           axisPct[a.key] = 0;
         }
       });
-      // общий средний
       const vals = Object.values(axisPct);
       const overall = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
 
-      // сильные / слабые оси
       const sorted = axesMeta.map(a => ({ key: a.key, pct: axisPct[a.key] })).sort((a, b) => b.pct - a.pct);
       const strong = sorted[0]?.key;
       const weak = sorted[sorted.length - 1]?.key;
 
-      // выбор архетипа
       let archId;
       if (overall >= 80) archId = 'master';
       else if (overall < 40) archId = 'chaos';
       else if (overall < 55) archId = 'raw';
       else {
-        // средне-высокий уровень: смотрим на сильную ось
         if (strong === 'init' || strong === 'impulse') archId = 'sprinter';
         else if (strong === 'system' || strong === 'delay') archId = 'engine';
         else archId = 'fighter';
       }
       const arch = (s.archetypes || []).find(a => a.id === archId) || (s.archetypes || [])[0];
-      return { axisPct, axisAvg, overall, arch, strong, weak };
+      return { axisPct, axisAvg, overall, arch, strong, weak, scaleMax: SCALE_MAX };
+    }
+
+    // 🔧 максимум шкалы: берём из survey.scale, иначе — самый большой s среди всех ответов
+    function getScaleMax(s) {
+      if (Array.isArray(s.scale) && s.scale.length) return Math.max(...s.scale);
+      let mx = 0;
+      (s.questions || []).forEach(q => (q.a || []).forEach(a => { if (a.s > mx) mx = a.s; }));
+      return mx || 5; // подстраховка
     }
 
     function showResult() {
@@ -789,7 +800,7 @@ function getLevel(score) {
         '</div>';
 
       tg.HapticFeedback?.notificationOccurred?.('success');
-      drawRadar('survey-radar', axesMeta, R.axisPct, R.axisAvg, R.weak, R.strong);
+      drawRadar('survey-radar', axesMeta, R.axisPct, R.axisAvg, R.weak, R.strong, R.scaleMax);
 
       // === сохраняем на сервер (расширенный scores, совместимый со старой историей) ===
       if (user?.id && currentSurvey?.id) {
@@ -836,7 +847,8 @@ function getLevel(score) {
 
     // === РАДАР на canvas с дробями X.X/5 ===
     // axisPct: {key:%}, axisAvg: {key:1..5}, weakKey/strongKey — для подсветки
-    function drawRadar(canvasId, axesMeta, axisPct, axisAvg, weakKey, strongKey) {
+        function drawRadar(canvasId, axesMeta, axisPct, axisAvg, weakKey, strongKey, scaleMax) {
+      scaleMax = scaleMax || 5;
       const cv = document.getElementById(canvasId);
       if (!cv) return;
 
@@ -865,9 +877,9 @@ function getLevel(score) {
 
       ctx.clearRect(0, 0, W, H);
 
-      // --- кольца-шкала (5 уровней = баллы 1..5) ---
-      for (let ring = 1; ring <= 5; ring++) {
-        const rr = R * ring / 5;
+      // --- кольца-шкала (по числу баллов) ---
+      for (let ring = 1; ring <= scaleMax; ring++) {
+        const rr = R * ring / scaleMax;
         ctx.beginPath();
         for (let i = 0; i <= n; i++) {
           const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
@@ -885,8 +897,8 @@ function getLevel(score) {
       ctx.font = '9px -apple-system, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      for (let ring = 1; ring <= 5; ring++) {
-        const rr = R * ring / 5;
+      for (let ring = 1; ring <= scaleMax; ring++) {
+        const rr = R * ring / scaleMax;
         ctx.fillText(ring, cx + 8, cy - rr);
       }
 
@@ -965,7 +977,7 @@ function getLevel(score) {
         const avg = axisAvg[key] != null ? axisAvg[key].toFixed(1) : '0.0';
         ctx.fillStyle = (key === weakKey) ? weakCol : accent;
         ctx.font = '700 13px -apple-system, sans-serif';
-        ctx.fillText(avg + '/5', lx, ly + 8);
+        ctx.fillText(avg + '/' + scaleMax, lx, ly + 8);
       }
     }
 
@@ -1015,7 +1027,7 @@ function getLevel(score) {
           '<button class="join-btn" style="margin-top:24px;width:100%" onclick="renderSurveyIntro()">← К истории</button>' +
         '</div>';
 
-      drawRadar('past-radar', axesMeta, axisPct, sc.axisAvg || {}, sc.weak, sc.strong);
+      drawRadar('past-radar', axesMeta, axisPct, sc.axisAvg || {}, sc.weak, sc.strong, getScaleMax(s));
       window.scrollTo(0, 0);
     }
     
