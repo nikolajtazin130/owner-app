@@ -616,25 +616,25 @@ function getLevel(score) {
     // Вердикт по оси. Два формата:
     //  - новый (баллы): элементы с полем level + min/max по сумме баллов + поле text
     //  - старый (проценты): элементы с min по % + поле t
-    function axisVerdict(survey, axisKey, pct, sum) {
+    function axisVerdict(survey, axisKey, pct, sum, minAns) {
       const map = (survey && survey.verdicts) || {};
       const list = map[axisKey];
       if (!Array.isArray(list) || !list.length) return '';
-
-      // новый формат определяем по наличию level у первого элемента
       const isLevelFormat = (list[0] && list[0].level != null);
-
       if (isLevelFormat) {
         const s = Number(sum) || 0;
+        let chosen = null;
         for (const v of list) {
           const mn = (v.min != null) ? v.min : -Infinity;
           const mx = (v.max != null) ? v.max : Infinity;
-          if (s >= mn && s <= mx) return v.text || v.t || '';
+          if (s >= mn && s <= mx) { chosen = v; break; }
         }
-        return '';
+        if (chosen && chosen.level === 4 && minAns === 1) {
+          const lvl3 = list.find(v => v.level === 3);
+          if (lvl3) chosen = lvl3;
+        }
+        return chosen ? (chosen.text || chosen.t || '') : '';
       }
-
-      // старый формат (проценты)
       for (const v of list) {
         if (pct >= (v.min || 0)) return v.t || '';
       }
@@ -643,17 +643,19 @@ function getLevel(score) {
 
     // Уровень оси по баллам (1..4) — для выбора base/refine.
     // Работает только с level-форматом вердиктов.
-    function axisLevel(survey, axisKey, sum) {
+    function axisLevel(survey, axisKey, sum, minAns) {
       const map = (survey && survey.verdicts) || {};
       const list = map[axisKey];
       if (!Array.isArray(list) || !list.length || list[0].level == null) return null;
       const s = Number(sum) || 0;
+      let lvl = null;
       for (const v of list) {
         const mn = (v.min != null) ? v.min : -Infinity;
         const mx = (v.max != null) ? v.max : Infinity;
-        if (s >= mn && s <= mx) return v.level;
+        if (s >= mn && s <= mx) { lvl = v.level; break; }
       }
-      return null;
+      if (lvl === 4 && minAns === 1) lvl = 3;
+      return lvl;
     }
 
     // Рычаги. Два формата:
@@ -693,7 +695,8 @@ function getLevel(score) {
       sortedWeak.forEach(ax => {
         const lv = map[ax.key];
         if (!lv) return;
-        const level = axisLevel(survey, ax.key, ax.sum); // 1..4
+        const axisMin = (R && R.axisMin) || {};
+        const level = axisLevel(survey, ax.key, ax.sum, axisMin[ax.key]);
         let text = '';
         if (level === 4) return;           // сильная ось — рычаг не нужен
         else if (level === 3) text = lv.refine || lv.base || '';
@@ -945,29 +948,43 @@ function getLevel(score) {
       // 🔧 определяем максимальный балл ответа (было жёстко "5")
       const SCALE_MAX = getScaleMax(s);
 
-      const axisPct = {}; // key -> %
-      const axisAvg = {}; // key -> средний балл
-      const axisSum = {}; // key -> сумма баллов (для вердиктов по баллам)
+      const axisPct = {};
+      const axisAvg = {};
+      const axisSum = {};
+      const axisMin = {};   //
       axesMeta.forEach(a => {
         const arr = currentAxisScores[a.key] || [];
         if (arr.length) {
           const sum = arr.reduce((x, y) => x + y, 0);
           const avg = sum / arr.length;
           axisSum[a.key] = sum;
-          axisAvg[a.key] = Math.round(avg * 10) / 10;
+          axisAvg[a.key] = Math.round((avg / SCALE_MAX * 5) * 10) / 10; // шкала /5
           axisPct[a.key] = Math.round((avg / SCALE_MAX) * 100);
+          axisMin[a.key] = Math.min(...arr);   
         } else {
           axisSum[a.key] = 0;
           axisAvg[a.key] = 0;
           axisPct[a.key] = 0;
+          axisMin[a.key] = 0;   
         }
       });
       const vals = Object.values(axisPct);
       const overall = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
 
-      const sorted = axesMeta.map(a => ({ key: a.key, pct: axisPct[a.key] })).sort((a, b) => b.pct - a.pct);
-      const strong = sorted[0]?.key;
-      const weak = sorted[sorted.length - 1]?.key;
+      const strongSorted = axesMeta.map(a => ({ key: a.key, pct: axisPct[a.key] })).sort((a, b) => b.pct - a.pct);
+      const strong = strongSorted[0]?.key;
+
+      // слабая ось: 1) мин %  2) больше единиц  3) приоритет из survey.weakPriority
+      const prio = (s.weakPriority && s.weakPriority.length) ? s.weakPriority : axesMeta.map(a => a.key);
+      const countOnes = (key) => (currentAxisScores[key] || []).filter(v => v === 1).length;
+      const weakSorted = axesMeta.map(a => ({
+        key: a.key, pct: axisPct[a.key], ones: countOnes(a.key), prio: prio.indexOf(a.key)
+      })).sort((x, y) => {
+        if (x.pct !== y.pct) return x.pct - y.pct;
+        if (x.ones !== y.ones) return y.ones - x.ones;
+        return x.prio - y.prio;
+      });
+      const weak = weakSorted[0]?.key;
 
             // выбор архетипа
       let arch = null;
@@ -1006,7 +1023,7 @@ function getLevel(score) {
       // Последняя подстраховка
       if (!arch) arch = (s.archetypes || [])[0];
 
-      return { axisPct, axisAvg, axisSum, overall, arch, strong, weak, scaleMax: SCALE_MAX };
+    return { axisPct, axisAvg, axisSum, axisMin, overall, arch, strong, weak, scaleMax: SCALE_MAX };
     }
 
     // 🔧 максимум шкалы: берём из survey.scale, иначе — самый большой s среди всех ответов
@@ -1029,7 +1046,7 @@ function getLevel(score) {
       // полосы по осям + вердикт под каждой (Уровень 1)
       const bars = axesMeta.map(a => {
         const pct = R.axisPct[a.key] || 0;
-        const vrd = axisVerdict(currentSurvey, a.key, pct, (R.axisSum || {})[a.key]);
+        const vrd = axisVerdict(currentSurvey, a.key, pct, (R.axisSum || {})[a.key], (R.axisMin || {})[a.key]);
         return '<div style="margin-bottom:16px;text-align:left;">' +
           '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
             '<span style="color:var(--text);">' + a.label + '</span>' +
@@ -1063,7 +1080,7 @@ function getLevel(score) {
         '</div>';
 
       tg.HapticFeedback?.notificationOccurred?.('success');
-      drawRadar('survey-radar', axesMeta, R.axisPct, R.axisAvg, R.weak, R.strong, R.scaleMax);
+      drawRadar('survey-radar', axesMeta, R.axisPct, R.axisAvg, R.weak, R.strong, 5);
 
       // === сохраняем на сервер (расширенный scores, совместимый со старой историей) ===
       if (user?.id && currentSurvey?.id) {
@@ -1078,6 +1095,7 @@ function getLevel(score) {
               axes: R.axisPct,
               axisAvg: R.axisAvg,
               axisSum: R.axisSum,
+              axisMin: R.axisMin,
               strong: R.strong,
               weak: R.weak,
               archetype: R.arch.id
@@ -1111,12 +1129,12 @@ function getLevel(score) {
 
     // === РАДАР на canvas с дробями X.X/5 ===
     // axisPct: {key:%}, axisAvg: {key:1..5}, weakKey/strongKey — для подсветки
-        function drawRadar(canvasId, axesMeta, axisPct, axisAvg, weakKey, strongKey, scaleMax) {
-      scaleMax = scaleMax || 5;
+    function drawRadar(canvasId, axesMeta, axisPct, axisAvg, weakKey, strongKey, scaleMax) {
+      scaleMax = scaleMax || 5;   // для подписи X.X/max (теперь всегда 5)
+      const RINGS = 5;            // колец всегда 5
       const cv = document.getElementById(canvasId);
       if (!cv) return;
 
-      // ретина-чёткость
       const dpr = window.devicePixelRatio || 1;
       const cssW = 340, cssH = 300;
       cv.width = cssW * dpr;
@@ -1129,7 +1147,7 @@ function getLevel(score) {
 
       const W = cssW, H = cssH;
       const cx = W / 2, cy = H / 2;
-      const R = Math.min(W, H) / 2 - 50; // место под подписи
+      const R = Math.min(W, H) / 2 - 50;
       const n = axesMeta.length;
       axisAvg = axisAvg || {};
 
@@ -1141,9 +1159,9 @@ function getLevel(score) {
 
       ctx.clearRect(0, 0, W, H);
 
-      // --- кольца-шкала (по числу баллов) ---
-      for (let ring = 1; ring <= scaleMax; ring++) {
-        const rr = R * ring / scaleMax;
+      // --- кольца: всегда 5 ---
+      for (let ring = 1; ring <= RINGS; ring++) {
+        const rr = R * ring / RINGS;
         ctx.beginPath();
         for (let i = 0; i <= n; i++) {
           const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
@@ -1152,17 +1170,17 @@ function getLevel(score) {
           i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.strokeStyle = gridCol;
-        ctx.lineWidth = ring === 5 ? 1.4 : 1;
+        ctx.lineWidth = ring === RINGS ? 1.4 : 1;
         ctx.stroke();
       }
 
-      // цифры шкалы по вертикали (1..5)
+      // цифры шкалы 1..5
       ctx.fillStyle = 'rgba(140,140,140,0.75)';
       ctx.font = '9px -apple-system, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      for (let ring = 1; ring <= scaleMax; ring++) {
-        const rr = R * ring / scaleMax;
+      for (let ring = 1; ring <= RINGS; ring++) {
+        const rr = R * ring / RINGS;
         ctx.fillText(ring, cx + 8, cy - rr);
       }
 
@@ -1177,7 +1195,7 @@ function getLevel(score) {
         ctx.stroke();
       }
 
-      // --- фигура значений ---
+      // --- фигура значений (по процентам) ---
       ctx.beginPath();
       for (let i = 0; i <= n; i++) {
         const idx = i % n;
@@ -1195,7 +1213,7 @@ function getLevel(score) {
       ctx.lineWidth = 2.2;
       ctx.stroke();
 
-      // --- точки + подписи с дробями ---
+      // --- точки + подписи ---
       ctx.font = '600 12px -apple-system, sans-serif';
       for (let i = 0; i < n; i++) {
         const key = axesMeta[i].key;
@@ -1205,39 +1223,32 @@ function getLevel(score) {
         const px = cx + rr * Math.cos(ang);
         const py = cy + rr * Math.sin(ang);
 
-        // цвет вершины: слабая = красный, сильная = золото, остальное = акцент
         let dotCol = accent;
         if (key === weakKey) dotCol = weakCol;
         else if (key === strongKey) dotCol = accent;
 
-        // точка
         ctx.beginPath();
         ctx.arc(px, py, key === weakKey || key === strongKey ? 4.5 : 3.2, 0, 2 * Math.PI);
         ctx.fillStyle = dotCol;
         ctx.fill();
 
-        // позиция подписи (за пределами радара)
         const cosA = Math.cos(ang), sinA = Math.sin(ang);
         let lx = cx + (R + 26) * cosA;
         let ly = cy + (R + 26) * sinA;
-
-        // выравнивание по краю и прижим боковых подписей внутрь холста
         if (Math.abs(cosA) < 0.3) {
           ctx.textAlign = 'center';
         } else if (cosA > 0) {
-          ctx.textAlign = 'right';   // правые — прижимаем к правому краю
+          ctx.textAlign = 'right';
           lx = W - 4;
         } else {
-          ctx.textAlign = 'left';    // левые — прижимаем к левому краю
+          ctx.textAlign = 'left';
           lx = 4;
         }
 
-        // название оси
         ctx.fillStyle = (key === weakKey) ? weakCol : textCol;
         ctx.font = '600 12px -apple-system, sans-serif';
         ctx.fillText(axesMeta[i].label, lx, ly - 7);
 
-        // дробь X.X/5
         const avg = axisAvg[key] != null ? axisAvg[key].toFixed(1) : '0.0';
         ctx.fillStyle = (key === weakKey) ? weakCol : accent;
         ctx.font = '700 13px -apple-system, sans-serif';
@@ -1269,7 +1280,7 @@ function getLevel(score) {
       // полосы по осям
       const bars = axesMeta.map(a => {
         const pct = axisPct[a.key] || 0;
-        const vrd = axisVerdict(currentSurvey, a.key, pct, (sc.axisSum || {})[a.key]);
+        const vrd = axisVerdict(currentSurvey, a.key, pct, (sc.axisSum || {})[a.key], (sc.axisMin || {})[a.key]);
         return '<div style="margin-bottom:16px;text-align:left;">' +
           '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
             '<span style="color:var(--text);">' + a.label + '</span>' +
@@ -1302,7 +1313,7 @@ function getLevel(score) {
           '<button class="join-btn" style="margin-top:24px;width:100%" onclick="renderSurveyIntro()">← К истории</button>' +
         '</div>';
 
-      drawRadar('past-radar', axesMeta, axisPct, sc.axisAvg || {}, sc.weak, sc.strong, getScaleMax(s));
+      drawRadar('past-radar', axesMeta, axisPct, sc.axisAvg || {}, sc.weak, sc.strong, 5);
       window.scrollTo(0, 0);
     }
     
