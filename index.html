@@ -623,7 +623,7 @@ function getLevel(score) {
     // Вердикт по оси. Два формата:
     //  - новый (баллы): элементы с полем level + min/max по сумме баллов + поле text
     //  - старый (проценты): элементы с min по % + поле t
-    function axisVerdict(survey, axisKey, pct, sum, minAns) {
+    function axisVerdict(survey, axisKey, pct, sum, minAns, weakSubIdx) {
       const map = (survey && survey.verdicts) || {};
       const list = map[axisKey];
       if (!Array.isArray(list) || !list.length) return '';
@@ -640,7 +640,14 @@ function getLevel(score) {
           const lvl3 = list.find(v => v.level === 3);
           if (lvl3) chosen = lvl3;
         }
-        return chosen ? (chosen.text || chosen.t || '') : '';
+        if (!chosen) return '';
+        let out = chosen.text || chosen.t || '';
+        // вариант Б: уточнение по слабейшей подфункции
+        if (Array.isArray(chosen.sub) && weakSubIdx != null && weakSubIdx >= 0) {
+          const subTxt = chosen.sub[weakSubIdx];
+          if (subTxt) out += ' ' + subTxt;
+        }
+        return out;
       }
       for (const v of list) {
         if (pct >= (v.min || 0)) return v.t || '';
@@ -703,13 +710,18 @@ function getLevel(score) {
         const lv = map[ax.key];
         if (!lv) return;
         const axisMin = (R && R.axisMin) || {};
+        const axisWeakSub = (R && R.axisWeakSub) || {};
         const level = axisLevel(survey, ax.key, ax.sum, axisMin[ax.key]);
         let text = '';
         if (level === 4) return;           // сильная ось — рычаг не нужен
         else if (level === 3) text = lv.refine || lv.base || '';
-        else text = lv.base || '';         // ур.1-2 (и на всякий случай null)
+        else text = lv.base || '';         // ур.1-2
+        // вариант Б: конкретный рычаг по слабейшей подфункции
+        const wIdx = axisWeakSub[ax.key];
+        if (Array.isArray(lv.subLevers) && wIdx != null && wIdx >= 0 && lv.subLevers[wIdx]) {
+          text = text ? (text + ' ' + lv.subLevers[wIdx]) : lv.subLevers[wIdx];
+        }
         if (!text) return;
-
         cards.push(
           '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin-bottom:10px;text-align:left;">' +
             '<div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px;">' + ax.label + '</div>' +
@@ -913,6 +925,7 @@ function getLevel(score) {
       currentQ = 0;
       currentScore = 0;
       currentAxisScores = {};
+      window.__axisWeakSub = {};
       renderQuestion();
     }
 
@@ -938,14 +951,16 @@ function getLevel(score) {
       const axis = q.axis || 'general';
       currentScore += score;
       if (!currentAxisScores[axis]) currentAxisScores[axis] = [];
+      // позиция ответа внутри оси = индекс подфункции (0,1,2,...)
+      const subIndex = currentAxisScores[axis].length;
       currentAxisScores[axis].push(score);
-      currentQ++;
-      if (currentQ < currentSurvey.questions.length) {
-        renderQuestion();
-      } else {
-        showResult();
+      // 🆕 запоминаем слабейшую подфункцию: {index, score}
+      if (!window.__axisWeakSub) window.__axisWeakSub = {};
+      const cur = window.__axisWeakSub[axis];
+      if (!cur || score < cur.score) {
+        window.__axisWeakSub[axis] = { index: subIndex, score: score };
       }
-    }
+      currentQ++;
 
     // считает % по каждой оси и выбирает архетип
     function computeSurveyResult() {
@@ -958,7 +973,8 @@ function getLevel(score) {
       const axisPct = {};
       const axisAvg = {};
       const axisSum = {};
-      const axisMin = {};   //
+      const axisMin = {};
+      const axisWeakSub = {};
       axesMeta.forEach(a => {
         const arr = currentAxisScores[a.key] || [];
         if (arr.length) {
@@ -967,19 +983,34 @@ function getLevel(score) {
           axisSum[a.key] = sum;
           axisAvg[a.key] = Math.round((avg / SCALE_MAX * 5) * 10) / 10; // шкала /5
           axisPct[a.key] = Math.round((avg / SCALE_MAX) * 100);
-          axisMin[a.key] = Math.min(...arr);   
+          axisMin[a.key] = Math.min(...arr);
+          // индекс подфункции с минимальным баллом (первый из равных)
+          axisWeakSub[a.key] = arr.indexOf(axisMin[a.key]);
         } else {
           axisSum[a.key] = 0;
           axisAvg[a.key] = 0;
           axisPct[a.key] = 0;
-          axisMin[a.key] = 0;   
+          axisMin[a.key] = 0;
+          axisWeakSub[a.key] = -1;
         }
       });
       const vals = Object.values(axisPct);
       const overall = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
 
       const strongSorted = axesMeta.map(a => ({ key: a.key, pct: axisPct[a.key] })).sort((a, b) => b.pct - a.pct);
-      const strong = strongSorted[0]?.key;
+      // tie-break: есть ли единоличный лидер?
+      const topPct = strongSorted[0]?.pct ?? 0;
+      const leaders = strongSorted.filter(x => x.pct === topPct);
+      // strongTied = true, если вершину делят 2+ оси (тогда "одной опоры" нет)
+      const strongTied = leaders.length > 1;
+      let strong;
+      if (!strongTied) {
+        strong = strongSorted[0]?.key;
+      } else {
+        // при ничьей — приоритет из survey.strongPriority (технический разрыв)
+        const sp = (s.strongPriority && s.strongPriority.length) ? s.strongPriority : axesMeta.map(a => a.key);
+        strong = leaders.slice().sort((x, y) => sp.indexOf(x.key) - sp.indexOf(y.key))[0].key;
+      }
 
       // слабая ось: 1) мин %  2) больше единиц  3) приоритет из survey.weakPriority
       const prio = (s.weakPriority && s.weakPriority.length) ? s.weakPriority : axesMeta.map(a => a.key);
@@ -998,14 +1029,14 @@ function getLevel(score) {
 
       // Вариант 2: правила из JSON (если заданы) — как в patterns
       if (Array.isArray(s.archetypeRules) && s.archetypeRules.length) {
-        const ctx = { p: axisPct, overall, strong, weak };
+      const ctx = { p: axisPct, overall, strong, weak, strongTied };
         for (const rule of s.archetypeRules) {
           try {
             const fn = (typeof rule._fn === 'function')
               ? rule._fn
-              : (rule._fn = new Function('p', 'overall', 'strong', 'weak',
+              : (rule._fn = new Function('p', 'overall', 'strong', 'weak', 'strongTied',
                   'return (' + rule.test + ');'));
-            if (fn(ctx.p, ctx.overall, ctx.strong, ctx.weak)) {
+            if (fn(ctx.p, ctx.overall, ctx.strong, ctx.weak, ctx.strongTied)) {
               arch = (s.archetypes || []).find(a => a.id === rule.id);
               if (arch) break;
             }
@@ -1030,7 +1061,7 @@ function getLevel(score) {
       // Последняя подстраховка
       if (!arch) arch = (s.archetypes || [])[0];
 
-    return { axisPct, axisAvg, axisSum, axisMin, overall, arch, strong, weak, scaleMax: SCALE_MAX };
+    return { axisPct, axisAvg, axisSum, axisMin, axisWeakSub, overall, arch, strong, weak, strongTied, scaleMax: SCALE_MAX };
     }
 
     // 🔧 максимум шкалы: берём из survey.scale, иначе — самый большой s среди всех ответов
@@ -1053,7 +1084,7 @@ function getLevel(score) {
       // полосы по осям + вердикт под каждой (Уровень 1)
       const bars = axesMeta.map(a => {
         const pct = R.axisPct[a.key] || 0;
-        const vrd = axisVerdict(currentSurvey, a.key, pct, (R.axisSum || {})[a.key], (R.axisMin || {})[a.key]);
+        const vrd = axisVerdict(currentSurvey, a.key, pct, (R.axisSum || {})[a.key], (R.axisMin || {})[a.key], (R.axisWeakSub || {})[a.key]);
         return '<div style="margin-bottom:16px;text-align:left;">' +
           '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
             '<span style="color:var(--text);">' + a.label + '</span>' +
@@ -1103,8 +1134,10 @@ function getLevel(score) {
               axisAvg: R.axisAvg,
               axisSum: R.axisSum,
               axisMin: R.axisMin,
+              axisWeakSub: R.axisWeakSub,
               strong: R.strong,
               weak: R.weak,
+              strongTied: R.strongTied,
               archetype: R.arch.id
             }
           })
@@ -1287,7 +1320,7 @@ function getLevel(score) {
       // полосы по осям
       const bars = axesMeta.map(a => {
         const pct = axisPct[a.key] || 0;
-        const vrd = axisVerdict(currentSurvey, a.key, pct, (sc.axisSum || {})[a.key], (sc.axisMin || {})[a.key]);
+        const vrd = axisVerdict(currentSurvey, a.key, pct, (sc.axisSum || {})[a.key], (sc.axisMin || {})[a.key], (sc.axisWeakSub || {})[a.key]);
         return '<div style="margin-bottom:16px;text-align:left;">' +
           '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">' +
             '<span style="color:var(--text);">' + a.label + '</span>' +
@@ -1314,7 +1347,7 @@ function getLevel(score) {
                 '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
               '</div>' : '';
           })() +
-          axisLever(currentSurvey, sc.weak, { axisSum: sc.axisSum || {} }) +
+          axisLever(currentSurvey, sc.weak, { axisSum: sc.axisSum || {}, axisMin: sc.axisMin || {}, axisWeakSub: sc.axisWeakSub || {} }) +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
           bars +
           '<button class="join-btn" style="margin-top:24px;width:100%" onclick="renderSurveyIntro()">← К истории</button>' +
