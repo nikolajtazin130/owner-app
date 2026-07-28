@@ -242,17 +242,18 @@
     { "id": "seed", "icon": "sprout", "title": "В начале пути", "text": "Сейчас ни одна из функций ещё не собрана в устойчивую опору — но прочти это правильно: тест показал не то, что ты слабый, а то, что фундамент только закладывается. Возможно, ты вымотан, в тяжёлом периоде или просто никогда не тренировал эти механизмы целенаправленно — и тогда действие, отсечение, выдержка даются через силу, потому что навыка пока нет, а не потому, что его не может быть. Не пытайся поднять всё сразу — это гарантированно сорвётся и добавит вины. Возьми одну ось, самую близкую и понятную, и работай только с ней ближайшие недели. Внутренний вес не выдаётся и не наследуется — он собирается по одной функции, и у тебя есть с чего начать." }
   ],
   "archetypeRules": [
-    { "id": "seed",       "test": "overall<42" },
-    { "id": "core",       "test": "overall>=80 && Math.min(p.command,p.closure,p.courage,p.consequence,p.contain,p.form)>=65" },
-    { "id": "raw_force",  "test": "overall>=45 && overall<80 && (Math.max(p.command,p.closure,p.courage,p.consequence,p.contain,p.form)-Math.min(p.command,p.closure,p.courage,p.consequence,p.contain,p.form))>=30" },
-    { "id": "commander",  "test": "strong==='command'" },
-    { "id": "blade",      "test": "strong==='closure'" },
-    { "id": "frontline",  "test": "strong==='courage'" },
-    { "id": "keel",       "test": "strong==='consequence'" },
-    { "id": "vessel",     "test": "strong==='contain'" },
-    { "id": "builder",    "test": "strong==='form'" },
-    { "id": "vessel",     "test": "true" }
-  ],
+  { "id": "core",       "test": "Math.min(p.command,p.closure,p.courage,p.consequence,p.contain,p.form)>=65" },
+  { "id": "raw_force",  "test": "Math.max(...)>=70 && (Math.max(...)-Math.min(...))>=30" },
+  { "id": "seed",       "test": "Math.max(p.command,p.closure,p.courage,p.consequence,p.contain,p.form)<50" },
+  { "id": "frame",      "test": "Math.max(...)<62" },
+  { "id": "commander",  "test": "strong==='command'" },
+  { "id": "blade",      "test": "strong==='closure'" },
+  { "id": "frontline",  "test": "strong==='courage'" },
+  { "id": "keel",       "test": "strong==='consequence'" },
+  { "id": "vessel",     "test": "strong==='contain'" },
+  { "id": "builder",    "test": "strong==='form'" },
+  { "id": "frame",      "test": "true" }
+],
   "verdicts": {
     "command": [
       { "level": 1, "min": 7,  "max": 13, "text": "Самоуправление пока не собрано: между решением и действием — большой зазор, старт откладывается, а срыв обнуляет всё направление. Это не лень характера, а отсутствие натренированного механизма «решил → нарезал → сделал». Начинается сборка с одной конкретной единицы действия в день." },
