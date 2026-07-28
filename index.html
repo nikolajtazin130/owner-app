@@ -961,6 +961,15 @@ function getLevel(score) {
         window.__axisWeakSub[axis] = { index: subIndex, score: score };
       }
       currentQ++;
+      if (currentQ < currentSurvey.questions.length) {
+        renderQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    // считает % по каждой оси и выбирает архетип
+    function computeSurveyResult() {
 
     // считает % по каждой оси и выбирает архетип
     function computeSurveyResult() {
