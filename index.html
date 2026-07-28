@@ -605,7 +605,7 @@ function getLevel(score) {
       flat: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>'
     };
 
-        function detectPattern(axisPct, survey){
+      function detectPattern(axisPct, survey){
       const p = axisPct || {};
       // сначала пробуем паттерны из самого опроса (survey.patterns)
       const list = (survey && survey.patterns) || [];
@@ -618,6 +618,40 @@ function getLevel(score) {
         } catch(e){}
       }
       return null;
+    }
+
+    // 🔗 Cross-паттерны: связка текущего опроса с другим (напр. test7 × test6).
+    // Читает survey.crossPatterns[]: { with, test, title, text }.
+    // В test-выражении доступны: p (оси текущего), q (оси связанного опроса).
+    function detectCrossPattern(axisPct, survey){
+      const list = (survey && survey.crossPatterns) || [];
+      if (!list.length) return '';
+      const results = (window.PROFILE && window.PROFILE.results) || {};
+
+      const cards = [];
+      for (const cp of list){
+        const otherId = cp.with;
+        const otherHist = results[otherId] || [];
+        if (!otherHist.length) continue;                 // связанный опрос не пройден — пропускаем
+        const otherAxes = otherHist[otherHist.length - 1]?.scores?.axes || {};
+        if (!Object.keys(otherAxes).length) continue;
+
+        try {
+          const fn = (typeof cp._fn === 'function')
+            ? cp._fn
+            : (cp._fn = new Function('p', 'q', 'return (' + cp.test + ');'));
+          if (fn(axisPct || {}, otherAxes)) {
+            cards.push(
+              '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin-bottom:10px;text-align:left;">' +
+                '<div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px;">' + (cp.title || '') + '</div>' +
+                '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + (cp.text || '') + '</div>' +
+              '</div>'
+            );
+          }
+        } catch(e){}
+      }
+      if (!cards.length) return '';
+      return '<div class="section-title" style="margin:10px 0;">Связка тестов</div>' + cards.join('');
     }
 
     // Вердикт по оси. Два формата:
@@ -740,6 +774,47 @@ function getLevel(score) {
       }
 
       return '<div class="section-title" style="margin:10px 0;">Твои узкие места</div>' + cards.join('');
+    }
+
+        // 🔍 Блок «Слепые зоны»: расхождение между образом себя и поведением
+    function renderBlindspots(blindspots) {
+      const list = (blindspots || []).filter(b => b && b.label);
+      if (!list.length) return '';
+
+      const cards = list.map(b => {
+        const isBlind = b.type === 'blind';
+        const emoji = isBlind ? '🔴' : '🟢';
+        const head = isBlind ? 'Слепая зона' : 'Недооценённая опора';
+        const borderCol = isBlind ? '#e5484d' : '#4caf7d';
+        const txt = isBlind
+          ? 'По оси «' + b.label + '» ты оцениваешь себя выше, чем показывает поведение: в самооценке ' +
+            b.self + '%, а по реальным ситуациям — ' + b.beh + '%. Это зона, где образ себя опережает поступки. ' +
+            'Скорее всего, ты считаешь эту функцию своей сильной стороной — но эпизоды последнего времени этого пока не подтверждают. ' +
+            'Не спорь с цифрой сходу: вспомни конкретные случаи и проверь, где ты действовал не так, как думаешь о себе.'
+          : 'По оси «' + b.label + '» ты действуешь сильнее, чем сам о себе думаешь: по реальным ситуациям ' +
+            b.beh + '%, а в самооценке — ' + b.self + '%. Ты уже владеешь этой функцией на деле, но не присвоил её как свою сильную сторону. ' +
+            'Это ресурс, который ты недооцениваешь и потому используешь не в полную силу. Признай его прямо — и опирайся на него осознанно.';
+
+        return '<div style="background:var(--card);border:1px solid ' + borderCol + ';border-radius:14px;padding:16px;margin-bottom:10px;text-align:left;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+            '<span style="font-size:16px;">' + emoji + '</span>' +
+            '<span style="font-size:16px;font-weight:700;color:' + borderCol + ';">' + head + ' · ' + b.label + '</span>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+            '<div style="flex:1;background:var(--bg);border-radius:10px;padding:8px 6px;text-align:center;">' +
+              '<div style="font-size:17px;font-weight:700;color:var(--text);">' + b.self + '%</div>' +
+              '<div style="font-size:10px;color:var(--hint);margin-top:2px;">Образ себя</div>' +
+            '</div>' +
+            '<div style="flex:1;background:var(--bg);border-radius:10px;padding:8px 6px;text-align:center;">' +
+              '<div style="font-size:17px;font-weight:700;color:var(--accent);">' + b.beh + '%</div>' +
+              '<div style="font-size:10px;color:var(--hint);margin-top:2px;">Поведение</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + txt + '</div>' +
+        '</div>';
+      }).join('');
+
+      return '<div class="section-title" style="margin:10px 0;">Образ себя против поведения</div>' + cards;
     }
 
         // 📈 Динамика: сравнение с прошлым замером
@@ -1001,6 +1076,53 @@ function getLevel(score) {
           axisWeakSub[a.key] = -1;
         }
       });
+
+            // === МЕХАНИКА СЛЕПЫХ ЗОН (probe: B / S / C) ===
+      const behaviorPct = {};
+      const selfPct = {};
+      const SCALE = SCALE_MAX;
+      axesMeta.forEach(a => {
+        const qs = (s.questions || []).filter(q => q.axis === a.key);
+        const arr = currentAxisScores[a.key] || [];
+        const bScores = [], sScores = [];
+        // порядок ответов в arr соответствует порядку вопросов оси
+        let i = 0;
+        qs.forEach(q => {
+          const val = arr[i]; i++;
+          if (val == null) return;
+          const pr = q.probe || 'B';
+          if (pr === 'B' || pr === 'C') bScores.push(val);
+          else if (pr === 'S') sScores.push(val);
+        });
+        const avgPct = list => list.length
+          ? Math.round((list.reduce((x, y) => x + y, 0) / list.length / SCALE) * 100)
+          : null;
+        behaviorPct[a.key] = avgPct(bScores);
+        selfPct[a.key] = avgPct(sScores);
+      });
+
+      // детекция слепых зон и недооценённых опор по порогам из survey.blindspot
+      const bsCfg = (s.blindspot && s.blindspot.thresholds) || null;
+      const blindspots = [];   // { key, label, type, self, beh, gap }
+      if (bsCfg) {
+        axesMeta.forEach(a => {
+          const self = selfPct[a.key];
+          const beh = behaviorPct[a.key];
+          if (self == null || beh == null) return;
+          const gap = self - beh;
+          // 🔴 слепая зона: думаю выше, чем действую
+          if (self >= bsCfg.blind_selfMin && beh <= bsCfg.blind_behMax && gap >= bsCfg.blind_gap) {
+            blindspots.push({ key: a.key, label: a.label, type: 'blind', self, beh, gap });
+          }
+          // 🟢 недооценённая опора: действую выше, чем думаю
+          else if (beh >= bsCfg.support_behMin && self <= bsCfg.support_selfMax && (beh - self) >= bsCfg.support_gap) {
+            blindspots.push({ key: a.key, label: a.label, type: 'support', self, beh, gap });
+          }
+        });
+        // сортируем по величине расхождения (сначала самые большие)
+        blindspots.sort((x, y) => Math.abs(y.gap) - Math.abs(x.gap));
+      }
+      
       const vals = Object.values(axisPct);
       const overall = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
 
@@ -1075,10 +1197,10 @@ function getLevel(score) {
       // Последняя подстраховка
       if (!arch) arch = (s.archetypes || [])[0];
 
-    return { axisPct, axisAvg, axisSum, axisMin, axisWeakSub, overall, arch, strong, weak, strongTied, scaleMax: SCALE_MAX };
+    return { axisPct, axisAvg, axisSum, axisMin, axisWeakSub, behaviorPct, selfPct, blindspots, overall, arch, strong, weak, strongTied, scaleMax: SCALE_MAX };
     }
 
-    // 🔧 максимум шкалы: берём из survey.scale, иначе — самый большой s среди всех ответов
+    // максимум шкалы: берём из survey.scale, иначе — самый большой s среди всех ответов
     function getScaleMax(s) {
       if (Array.isArray(s.scale) && s.scale.length) return Math.max(...s.scale);
       let mx = 0;
@@ -1124,6 +1246,8 @@ function getLevel(score) {
                 '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
               '</div>' : '';
           })() +
+          renderBlindspots(R.blindspots) +
+          detectCrossPattern(R.axisPct, currentSurvey) +
           renderDynamics(currentSurvey, R.overall) +
           axisLever(currentSurvey, R.weak, R) +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
@@ -1149,6 +1273,9 @@ function getLevel(score) {
               axisSum: R.axisSum,
               axisMin: R.axisMin,
               axisWeakSub: R.axisWeakSub,
+              behaviorPct: R.behaviorPct,
+              selfPct: R.selfPct,
+              blindspots: R.blindspots,
               strong: R.strong,
               weak: R.weak,
               strongTied: R.strongTied,
@@ -1361,6 +1488,7 @@ function getLevel(score) {
                 '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
               '</div>' : '';
           })() +
+          renderBlindspots(sc.blindspots) +
           axisLever(currentSurvey, sc.weak, { axisSum: sc.axisSum || {}, axisMin: sc.axisMin || {}, axisWeakSub: sc.axisWeakSub || {} }) +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
           bars +
