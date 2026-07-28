@@ -776,26 +776,28 @@ function getLevel(score) {
       return '<div class="section-title" style="margin:10px 0;">Твои узкие места</div>' + cards.join('');
     }
 
-        // 🔍 Блок «Слепые зоны»: расхождение между образом себя и поведением
-    function renderBlindspots(blindspots) {
+            // 🔍 Блок «Слепые зоны»: расхождение между образом себя и поведением
+    function renderBlindspots(blindspots, survey) {
       const list = (blindspots || []).filter(b => b && b.label);
       if (!list.length) return '';
+      const pats = (survey && survey.patterns) || {};
 
-        const cards = list.map(b => {
+      const cards = list.map(b => {
         const isBlind = b.type === 'blind';
         const borderCol = isBlind ? '#e5484d' : '#4caf7d';
         const emoji = isBlind
           ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + borderCol + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>'
           : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + borderCol + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>';
         const head = isBlind ? 'Слепая зона' : 'Недооценённая опора';
-        const txt = isBlind
+
+        // авторский текст из survey.patterns[axis][S>B|B>S], если задан
+        const axisPat = pats[b.key] || {};
+        const authored = isBlind ? axisPat['S>B'] : axisPat['B>S'];
+        const txt = authored ? authored : (isBlind
           ? 'По оси «' + b.label + '» ты оцениваешь себя выше, чем показывает поведение: в самооценке ' +
-            b.self + '%, а по реальным ситуациям — ' + b.beh + '%. Это зона, где образ себя опережает поступки. ' +
-            'Скорее всего, ты считаешь эту функцию своей сильной стороной — но эпизоды последнего времени этого пока не подтверждают. ' +
-            'Не спорь с цифрой сходу: вспомни конкретные случаи и проверь, где ты действовал не так, как думаешь о себе.'
+            b.self + '%, а по реальным ситуациям — ' + b.beh + '%. Это зона, где образ себя опережает поступки.'
           : 'По оси «' + b.label + '» ты действуешь сильнее, чем сам о себе думаешь: по реальным ситуациям ' +
-            b.beh + '%, а в самооценке — ' + b.self + '%. Ты уже владеешь этой функцией на деле, но не присвоил её как свою сильную сторону. ' +
-            'Это ресурс, который ты недооцениваешь и потому используешь не в полную силу. Признай его прямо — и опирайся на него осознанно.';
+            b.beh + '%, а в самооценке — ' + b.self + '%. Ты уже владеешь этой функцией на деле, но не присвоил её как свою сильную сторону.');
 
         return '<div style="background:var(--card);border:1px solid ' + borderCol + ';border-radius:14px;padding:16px;margin-bottom:10px;text-align:left;">' +
           '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
@@ -817,6 +819,33 @@ function getLevel(score) {
       }).join('');
 
       return '<div class="section-title" style="margin:10px 0;">Образ себя против поведения</div>' + cards;
+    }
+
+        // R-сигналы: облегчение после отказа от шага = маркер сработавшей выгоды.
+    // Показываем R-текст оси, если её R-вопрос дал низкий балл (<=2) — по последнему замеру.
+    function renderReliefSignals(survey, R) {
+      const pats = (survey && survey.patterns) || {};
+      const axesMeta = (survey && survey.axes) || [];
+      const cards = [];
+      axesMeta.forEach(a => {
+        const rTxt = (pats[a.key] || {}).R;
+        if (!rTxt) return;
+        // ищем R-вопрос этой оси и его балл в порядке ответов
+        const qsAll = (survey.questions || []).filter(q => q.axis === a.key);
+        const arr = (currentAxisScores[a.key] || []);
+        let rScore = null;
+        qsAll.forEach((q, i) => { if ((q.probe || 'B') === 'R') rScore = arr[i]; });
+        if (rScore != null && rScore <= 2) {
+          cards.push(
+            '<div style="background:var(--card);border:1px solid #e5484d;border-radius:14px;padding:16px;margin-bottom:10px;text-align:left;">' +
+              '<div style="font-size:16px;font-weight:700;color:#e5484d;margin-bottom:8px;">' + a.label + '</div>' +
+              '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + rTxt + '</div>' +
+            '</div>'
+          );
+        }
+      });
+      if (!cards.length) return '';
+      return '<div class="section-title" style="margin:10px 0;">Сигналы вторичной выгоды</div>' + cards.join('');
     }
 
         // 📈 Динамика: сравнение с прошлым замером
@@ -1273,7 +1302,8 @@ function getLevel(score) {
                 '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
               '</div>' : '';
           })() +
-          renderBlindspots(R.blindspots) +
+          renderBlindspots(R.blindspots, currentSurvey) +
+          renderReliefSignals(currentSurvey, R) +
           detectCrossPattern(R.axisPct, currentSurvey) +
           renderDynamics(currentSurvey, R.overall) +
           axisLever(currentSurvey, R.weak, R) +
@@ -1515,7 +1545,7 @@ function getLevel(score) {
                 '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
               '</div>' : '';
           })() +
-          renderBlindspots(sc.blindspots) +
+          renderBlindspots(sc.blindspots, currentSurvey) +
           axisLever(currentSurvey, sc.weak, { axisSum: sc.axisSum || {}, axisMin: sc.axisMin || {}, axisWeakSub: sc.axisWeakSub || {} }) +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
           bars +
