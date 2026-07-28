@@ -636,16 +636,17 @@ function getLevel(score) {
           const mx = (v.max != null) ? v.max : Infinity;
           if (s >= mn && s <= mx) { chosen = v; break; }
         }
-        if (chosen && chosen.level === 4 && minAns === 1) {
-          const lvl3 = list.find(v => v.level === 3);
-          if (lvl3) chosen = lvl3;
-        }
+        // ур.4 больше НЕ сбрасываем на ур.3 — оставляем сильную ось сильной,
+        // но ниже допишем "трещину" через sub, если она есть
         if (!chosen) return '';
         let out = chosen.text || chosen.t || '';
-        // вариант Б: уточнение по слабейшей подфункции
+        // уточнение по слабейшей подфункции
         if (Array.isArray(chosen.sub) && weakSubIdx != null && weakSubIdx >= 0) {
           const subTxt = chosen.sub[weakSubIdx];
-          if (subTxt) out += ' ' + subTxt;
+          // на ур.4 показываем трещину ТОЛЬКО если реально есть провал (minAns <= 2);
+          // если все ответы 3-4 — оставляем чистую "Несущую опору" без оговорок
+          const showSub = !(chosen.level === 4 && (Number(minAns) || 0) >= 3);
+          if (subTxt && showSub) out += ' ' + subTxt;
         }
         return out;
       }
@@ -1013,9 +1014,16 @@ function getLevel(score) {
       if (!strongTied) {
         strong = strongSorted[0]?.key;
       } else {
-        // при ничьей — приоритет из survey.strongPriority (технический разрыв)
+        // при ничьей: 1) больше ответов на макс.балл  2) больше на след.балл  3) strongPriority
         const sp = (s.strongPriority && s.strongPriority.length) ? s.strongPriority : axesMeta.map(a => a.key);
-        strong = leaders.slice().sort((x, y) => sp.indexOf(x.key) - sp.indexOf(y.key))[0].key;
+        const countN = (key, n) => (currentAxisScores[key] || []).filter(v => v === n).length;
+        strong = leaders.slice().sort((x, y) => {
+          const f = countN(y.key, SCALE_MAX) - countN(x.key, SCALE_MAX);
+          if (f) return f;
+          const t = countN(y.key, SCALE_MAX - 1) - countN(x.key, SCALE_MAX - 1);
+          if (t) return t;
+          return sp.indexOf(x.key) - sp.indexOf(y.key);
+        })[0].key;
       }
 
       // слабая ось: 1) мин %  2) больше единиц  3) приоритет из survey.weakPriority
