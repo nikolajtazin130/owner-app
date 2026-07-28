@@ -1050,9 +1050,25 @@ function getLevel(score) {
     function computeSurveyResult() {
       const s = currentSurvey;
       const axesMeta = s.axes || [];
-
-      // 🔧 определяем максимальный балл ответа (было жёстко "5")
+      
+      // 🔧 максимальный балл ответа
       const SCALE_MAX = getScaleMax(s);
+      
+      // какие probe входят в вес оси (4B + C + K). R и S — вес 0.
+      const WEIGHTED = { B: true, C: true, K: true };
+      
+      // для каждой оси — массив баллов ТОЛЬКО весомых вопросов, в порядке их следования
+      function weightedScores(axisKey) {
+        const qs = (s.questions || []).filter(q => q.axis === axisKey);
+        const arr = currentAxisScores[axisKey] || [];
+        const out = [];
+        qs.forEach((q, i) => {
+          const val = arr[i];
+          if (val == null) return;
+          if (WEIGHTED[q.probe || 'B']) out.push(val);
+        });
+        return out;
+      }
 
       const axisPct = {};
       const axisAvg = {};
@@ -1060,22 +1076,31 @@ function getLevel(score) {
       const axisMin = {};
       const axisWeakSub = {};
       axesMeta.forEach(a => {
-        const arr = currentAxisScores[a.key] || [];
+        const arr = weightedScores(a.key);   // 🆕 только 4B+C+K
         if (arr.length) {
           const sum = arr.reduce((x, y) => x + y, 0);
           const avg = sum / arr.length;
           axisSum[a.key] = sum;
-          axisAvg[a.key] = Math.round((avg / SCALE_MAX * 5) * 10) / 10; // шкала /5
+          axisAvg[a.key] = Math.round((avg / SCALE_MAX * 5) * 10) / 10;
           axisPct[a.key] = Math.round((avg / SCALE_MAX) * 100);
           axisMin[a.key] = Math.min(...arr);
-          // индекс подфункции с минимальным баллом (первый из равных)
-          axisWeakSub[a.key] = arr.indexOf(axisMin[a.key]);
+          // weakSub — индекс слабейшей ТОЛЬКО среди B-вопросов (0..3), под sub[4]/subLevers[4]
+          (function(){
+            const qsB = (s.questions || []).filter(q => q.axis === a.key && (q.probe||'B') === 'B');
+            const allArr = currentAxisScores[a.key] || [];
+            const qsAll = (s.questions || []).filter(q => q.axis === a.key);
+            let bIdx = 0, minV = Infinity, wi = -1;
+            qsAll.forEach((q, i) => {
+              if ((q.probe||'B') !== 'B') return;
+              const v = allArr[i];
+              if (v != null && v < minV) { minV = v; wi = bIdx; }
+              bIdx++;
+            });
+            axisWeakSub[a.key] = wi;
+          })();
         } else {
-          axisSum[a.key] = 0;
-          axisAvg[a.key] = 0;
-          axisPct[a.key] = 0;
-          axisMin[a.key] = 0;
-          axisWeakSub[a.key] = -1;
+          axisSum[a.key] = 0; axisAvg[a.key] = 0; axisPct[a.key] = 0;
+          axisMin[a.key] = 0; axisWeakSub[a.key] = -1;
         }
       });
 
