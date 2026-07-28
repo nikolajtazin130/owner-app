@@ -18,12 +18,10 @@
     "thresholds": {
       "blind_selfMin": 65,
       "blind_behMax": 58,
-      "blind_gap": 25,
-      "blind_lowCount": 2,
+      "blind_gap": 20,
       "support_behMin": 65,
       "support_selfMax": 58,
-      "support_gap": 25,
-      "support_highCount": 2
+      "support_gap": 20
     }
   },
   "questions": [
@@ -285,19 +283,20 @@
     { "id": "searching", "icon": "sprout", "title": "В поиске опоры", "text": "Сейчас сразу несколько вторичных выгод работают вслепую, и ни одна зона не собрана в опору — но прочти это правильно: тест показал не слабость характера, а то, что защиты пока сильнее тебя по всему периметру. Возможно, ты долго жил в режиме, где безопаснее было не рисковать, не предъявляться и не закрывать двери. Не пытайся вскрыть все выгоды разом. Возьми одну ось — ту, где цена застревания для тебя очевиднее всего, — и работай только с ней. Свобода собирается по одной защите." },
     { "id": "forming", "icon": "compass", "title": "Контур свободы", "text": "У тебя уже проявились зоны, где выгода не управляет тобой, но ни одна пока не поднята до устойчивой опоры — конструкция ещё формируется. Это не слабость: контур свободы намечен, направление читается, но полную нагрузку он пока не держит. Главная ошибка сейчас — вскрывать все выгоды разом или ждать, пока «само отпустит». Возьми одну ось — самую близкую — и доведи именно её до опоры за ближайшие недели. Первая по-настоящему обезвреженная выгода задаёт высоту остальным." }
   ],
-  "archetypeRules": [
+  
+    "archetypeRules": [
     { "id": "free",       "test": "Math.min(p.control,p.validation,p.image,p.belonging,p.reversibility,p.success)>=65" },
     { "id": "mixed",      "test": "Math.max(p.control,p.validation,p.image,p.belonging,p.reversibility,p.success)>=70 && (Math.max(p.control,p.validation,p.image,p.belonging,p.reversibility,p.success)-Math.min(p.control,p.validation,p.image,p.belonging,p.reversibility,p.success))>=35" },
     { "id": "searching",  "test": "Math.max(p.control,p.validation,p.image,p.belonging,p.reversibility,p.success)<45" },
-    { "id": "forming",    "test": "strongTied || Math.max(p.control,p.validation,p.image,p.belonging,p.reversibility,p.success)<62" },
-    { "id": "controller", "test": "weak==='control'" },
-    { "id": "seeker",     "test": "weak==='validation'" },
-    { "id": "guardian",   "test": "weak==='image'" },
-    { "id": "loyalist",   "test": "weak==='belonging'" },
-    { "id": "keeper",     "test": "weak==='reversibility'" },
-    { "id": "haltbefore", "test": "weak==='success'" },
+    { "id": "controller", "test": "!strongTied && weak==='control' && p.control<=58" },
+    { "id": "seeker",     "test": "!strongTied && weak==='validation' && p.validation<=58" },
+    { "id": "guardian",   "test": "!strongTied && weak==='image' && p.image<=58" },
+    { "id": "loyalist",   "test": "!strongTied && weak==='belonging' && p.belonging<=58" },
+    { "id": "keeper",     "test": "!strongTied && weak==='reversibility' && p.reversibility<=58" },
+    { "id": "haltbefore", "test": "!strongTied && weak==='success' && p.success<=58" },
     { "id": "forming",    "test": "true" }
   ],
+  
   "verdicts": {
     "control": [
       { "level": 1, "min": 6, "max": 11, "text": "Гарантия контроля управляет тобой: пока нет ощущения полной ясности, ты остаёшься в подготовке, а шаг откладывается. Остановка бережёт от бессилия перед тем, что нельзя просчитать — но плата растёт молча. Начни с одного: отдели зону реального влияния от иллюзии контроля и сделай шаг по ней.",
