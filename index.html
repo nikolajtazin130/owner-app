@@ -783,9 +783,11 @@ function getLevel(score) {
 
       const cards = list.map(b => {
         const isBlind = b.type === 'blind';
-        const emoji = isBlind ? '🔴' : '🟢';
-        const head = isBlind ? 'Слепая зона' : 'Недооценённая опора';
+        const emoji = isBlind
         const borderCol = isBlind ? '#e5484d' : '#4caf7d';
+  ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + borderCol + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>'
+  : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + borderCol + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>';
+        const head = isBlind ? 'Слепая зона' : 'Недооценённая опора';
         const txt = isBlind
           ? 'По оси «' + b.label + '» ты оцениваешь себя выше, чем показывает поведение: в самооценке ' +
             b.self + '%, а по реальным ситуациям — ' + b.beh + '%. Это зона, где образ себя опережает поступки. ' +
@@ -797,7 +799,7 @@ function getLevel(score) {
 
         return '<div style="background:var(--card);border:1px solid ' + borderCol + ';border-radius:14px;padding:16px;margin-bottom:10px;text-align:left;">' +
           '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-            '<span style="font-size:16px;">' + emoji + '</span>' +
+            '<span style="display:inline-flex;align-items:center;">' + emoji + '</span>' +
             '<span style="font-size:16px;font-weight:700;color:' + borderCol + ';">' + head + ' · ' + b.label + '</span>' +
           '</div>' +
           '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
