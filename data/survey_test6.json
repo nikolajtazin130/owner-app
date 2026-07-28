@@ -243,8 +243,8 @@
   ],
   "archetypeRules": [
     { "id": "seed",       "test": "overall<42" },
-    { "id": "core",       "test": "overall>=80 && minAxis>=65" },
-    { "id": "raw_force",  "test": "spread>=30 && overall>=45 && overall<80" },
+    { "id": "core",       "test": "overall>=80 && Math.min(p.command,p.closure,p.courage,p.consequence,p.contain,p.form)>=65" },
+    { "id": "raw_force",  "test": "overall>=45 && overall<80 && (Math.max(p.command,p.closure,p.courage,p.consequence,p.contain,p.form)-Math.min(p.command,p.closure,p.courage,p.consequence,p.contain,p.form))>=30" },
     { "id": "commander",  "test": "strong==='command'" },
     { "id": "blade",      "test": "strong==='closure'" },
     { "id": "frontline",  "test": "strong==='courage'" },
