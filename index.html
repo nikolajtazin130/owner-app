@@ -207,76 +207,72 @@
     .read-progress .rp-bar { height:8px; background:rgba(255,255,255,0.08); border-radius:8px; overflow:hidden; }
     .read-progress .rp-fill { height:100%; background:var(--accent); border-radius:8px; transition:width .4s; }
     /* ===== НАГРАДЫ (бейджи) ===== */
-.aw-grid { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; }
-.aw-badge { display:flex; flex-direction:column; align-items:center; width:88px; text-align:center; }
+.aw-grid { display:flex; flex-wrap:wrap; gap:16px 8px; justify-content:space-between; }
+.aw-badge { display:flex; flex-direction:column; align-items:center; width:30%; text-align:center; cursor:pointer; transition:transform .1s; }
+.aw-badge:active { transform:scale(0.94); }
 
-/* подложка иконки */
 .aw-icon-wrap {
-  position:relative; width:60px; height:60px;
+  position:relative; width:64px; height:64px;
   display:flex; align-items:center; justify-content:center;
   margin-bottom:8px;
 }
-.aw-icon-wrap svg { width:28px; height:28px; position:relative; z-index:2; }
+/* SVG-форма (круг или шестиугольник) — рисуется поверх, рамка ровная */
+.aw-shape-svg { position:absolute; inset:0; width:100%; height:100%; z-index:1; }
+.aw-icon-svg  { position:relative; z-index:2; display:flex; }
+.aw-icon-svg svg { width:26px; height:26px; color:var(--aw-color); stroke:var(--aw-color); }
 
-/* --- АВТО: круг --- */
-.aw-auto .aw-shape {
-  position:absolute; inset:0; border-radius:50%;
-  border:2px solid var(--aw-color);
-  background:rgba(255,255,255,0.02);
-}
-
-/* --- РУЧНЫЕ: шестиугольник (медаль-знак) --- */
-.aw-manual .aw-icon-wrap {
-  filter: drop-shadow(0 0 5px var(--aw-color));
-}
-.aw-manual .aw-shape {
-  position: absolute;
-  inset: 0;
-  background: rgba(255,255,255,0.02);
-  border: 2px solid var(--aw-color);
-  /* правильный шестиугольник (плоский верх) */
-  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
-}
-/* внутренняя обводка-«печать» */
-.aw-manual .aw-shape:after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border: 1px solid var(--aw-color);
-  opacity: 0.4;
-  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
-}
-
-/* --- финальный тир IV: свечение + пульсация --- */
+/* свечение только у топ-тира IV */
 .aw-tier4 .aw-icon-wrap { filter:drop-shadow(0 0 8px var(--aw-color)); }
-.aw-tier4 .aw-shape { animation:awPulse 2.4s ease-in-out infinite; }
+.aw-tier4 .aw-shape-svg { animation:awPulse 2.4s ease-in-out infinite; }
 @keyframes awPulse {
-  0%,100% { box-shadow:0 0 6px 0 var(--aw-color); }
-  50%     { box-shadow:0 0 14px 2px var(--aw-color); }
+  0%,100% { opacity:0.85; }
+  50%     { opacity:1; filter:drop-shadow(0 0 4px var(--aw-color)); }
 }
 
 /* римская цифра тира */
 .aw-tier-num {
-  position:absolute; top:-4px; right:-4px; z-index:3;
-  min-width:18px; height:18px; padding:0 3px;
-  font-size:10px; font-weight:700; line-height:18px;
+  position:absolute; top:-3px; right:-3px; z-index:3;
+  min-width:20px; height:20px; padding:0 4px;
+  font-size:11px; font-weight:700; line-height:20px;
   color:#000; background:var(--aw-color);
-  border-radius:9px; text-align:center;
+  border-radius:10px; text-align:center;
 }
-
-/* цвет иконки = цвет уровня */
-.aw-icon-wrap svg { color:var(--aw-color); stroke:var(--aw-color); }
 
 /* подписи */
 .aw-title { font-size:11px; font-weight:600; color:var(--text); line-height:1.25; }
-.aw-sub   { font-size:9px; color:var(--hint); margin-top:2px; }
+.aw-sub   { font-size:9px; color:var(--hint); margin-top:2px; line-height:1.3; }
 .aw-manual .aw-sub { color:var(--accent); }
 
-/* заблокированная (не достигнут ни один тир) */
-.aw-badge.aw-locked .aw-icon-wrap { filter:none; opacity:0.35; }
-.aw-badge.aw-locked .aw-shape { border-color:var(--hint); animation:none; box-shadow:none; }
-.aw-badge.aw-locked .aw-icon-wrap svg { color:var(--hint); stroke:var(--hint); }
-.aw-badge.aw-locked .aw-tier-num { display:none; }
+/* заблокированная */
+.aw-badge.aw-locked { opacity:0.4; }
+.aw-badge.aw-locked .aw-icon-wrap { filter:none; }
+.aw-badge.aw-locked .aw-shape-svg { animation:none; }
+
+/* ===== МОДАЛКА НАГРАДЫ ===== */
+.aw-modal-icon-wrap {
+  position:relative; width:90px; height:90px;
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 16px;
+}
+.aw-modal-icon-wrap .aw-shape-svg { position:absolute; inset:0; }
+.aw-modal-icon-wrap svg.aw-shape-svg { width:100%; height:100%; }
+.aw-modal-icon { position:relative; z-index:2; }
+.aw-modal-icon svg { width:38px; height:38px; }
+.aw-modal-tier { font-size:13px; font-weight:700; margin-bottom:6px; }
+.aw-modal-desc { font-size:14px; color:var(--hint); line-height:1.55; margin-bottom:18px; }
+.aw-tier-list { text-align:left; margin-bottom:16px; }
+.aw-tier-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+.aw-tier-row:last-child { border-bottom:none; }
+.aw-tier-row .tr-roman { min-width:26px; font-weight:700; font-size:13px; text-align:center; }
+.aw-tier-row .tr-label { flex:1; font-size:13px; color:var(--text); }
+.aw-tier-row.done .tr-label { color:var(--hint); }
+.aw-tier-row .tr-check { font-size:14px; }
+.aw-progress-box { background:var(--bg); border-radius:12px; padding:12px 14px; margin-bottom:16px; }
+.aw-progress-box .apb-text { font-size:12px; color:var(--hint); margin-bottom:6px; }
+.aw-progress-box .apb-bar { height:6px; background:rgba(255,255,255,0.08); border-radius:6px; overflow:hidden; }
+.aw-progress-box .apb-fill { height:100%; background:var(--accent); border-radius:6px; }
+.aw-modal-date { font-size:12px; color:var(--hint); text-align:center; margin-top:4px; }
+.aw-modal-date.demo { opacity:0.7; font-style:italic; }
   </style>
 </head>
 <body>
