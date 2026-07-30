@@ -1738,18 +1738,37 @@ function getLevel(score) {
         ? `До «${lv.next.title}» — ещё ${lv.need} баллов`
         : 'Максимальный уровень достигнут 👑';
 
-      const awards = profile.awards || [];
-      document.getElementById('awards-count').textContent = awards.length;
+    // 🏅 Награды 2.0 — сетка бейджей (пока превью на демо-тирах)
+      renderAwardsGrid(profile);
+    }
+
+    // Рендер сетки наград. Пока показываем демо-тиры; на этапе бэкенда
+    // заменим demoTiers на реальные данные из profile.
+    function renderAwardsGrid(profile) {
       const box = document.getElementById('awards-list');
-      if (awards.length) {
-                box.innerHTML = awards.map(a => {
-          const info = awardById(a.id) || { emoji: "🏅", title: a.title || "Награда" };
-          const dateStr = a.date
-            ? "Получена " + new Date(a.date).toLocaleDateString('ru-RU')
-            : "Награда получена";
-          return `<div class="ach-item"><div class="ach-ico">${info.emoji}</div><div class="ach-info"><h4>${info.title}</h4><p>${dateStr}</p></div></div>`;
-        }).join('');
+      if (typeof AWARD_DEFS === 'undefined' || typeof renderAwardBadge !== 'function') {
+        box.innerHTML = '<div class="empty" style="color:#ff8a8a">awards.js не загрузился</div>';
+        return;
       }
+      // 🎨 ДЕМО: показываем все бейджи на разных тирах для оценки вида
+      const demoTiers = {
+        loyal_days:1, explorer:2, full_map:3, mirror:4,
+        marathoner:0, long_effort:2, first_echo:3, not_passed:4,
+        circle_support:2, initiator:3, owner_friend:4, role_model:1,
+        precise:0, march_2025:4, stays_online:2, adds_context:3
+      };
+      const demoSubs = {
+        loyal_days:'до серебра: 8 дн.',
+        march_2025:'Вручено лично',
+        owner_friend:'Вручено лично'
+      };
+      // счётчик наград = сколько бейджей открыто (tier > 0)
+      const earned = AWARD_DEFS.filter(d => (demoTiers[d.id] || 0) > 0).length;
+      document.getElementById('awards-count').textContent = earned;
+
+      box.innerHTML = '<div class="aw-grid">' +
+        AWARD_DEFS.map(d => renderAwardBadge(d, demoTiers[d.id] || 0, demoSubs[d.id] || '')).join('') +
+      '</div>';
     }
 
     async function checkAccess() {
