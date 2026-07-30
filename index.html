@@ -254,6 +254,13 @@
   display:flex; align-items:center; justify-content:center;
   margin:0 auto 16px;
 }
+.m-award-badge {
+  position:relative; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+}
+.m-award-badge .aw-shape-svg { position:absolute; inset:0; }
+.m-award-ico { position:relative; z-index:2; display:flex; }
+.m-award-ico svg { width:18px; height:18px; stroke:var(--accent); }
 .aw-modal-icon-wrap .aw-shape-svg { position:absolute; inset:0; }
 .aw-modal-icon-wrap svg.aw-shape-svg { width:100%; height:100%; }
 .aw-modal-icon { position:relative; z-index:2; }
@@ -448,6 +455,14 @@
 
   <div id="marathon-report" class="modal-overlay" onclick="closeMarathonReport(event)"></div>
 
+     <!-- 🏅 Модалка награды -->
+  <div id="awModalOverlay" class="modal-overlay" onclick="if(event.target===this)closeAwardModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <span class="close-x" onclick="closeAwardModal()">✕</span>
+      <div class="modal-body" id="awModalBody"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <script>
@@ -462,20 +477,8 @@
     const RULES_URL    = "";
     const DATA_PATH    = "data/";
 
-        // 🏅 Список всех наград клуба
-    const AWARDS = [
-      { id: "first_step",  emoji: "🌱", title: "Первый шаг" },
-      { id: "newbie",      emoji: "✨", title: "Новичок в деле" },
-      { id: "hooked",      emoji: "🔥", title: "Втянулся" },
-      { id: "master",      emoji: "⚡", title: "Мастер" },
-      { id: "legend",      emoji: "🏆", title: "Легенда" },
-      { id: "loyal",       emoji: "📅", title: "Верный делу" },
-      { id: "streak",      emoji: "🎯", title: "Своя серия" },
-      { id: "friend",      emoji: "🤝", title: "Друг клуба" },
-      { id: "star_month",  emoji: "👑", title: "Звезда месяца" },
-      { id: "founder",     emoji: "🎖️", title: "Основатель" },
-    ];
-    function awardById(id) { return AWARDS.find(a => a.id === id); }
+    // 🏅 Список всех наград клуба
+    function awardById(id) { return AWARD_DEFS.find(a => a.id === id); }
 
     // 🎖 Уровни (считаются от profile.score на фронте)
 const LEVELS = [
@@ -1774,6 +1777,78 @@ function getLevel(score) {
       '</div>';
     }
 
+    function openAwardModal(id, tier) {
+  const def = awardById(id);
+  if (!def) return;
+  tier = Number(tier) || 0;
+  const locked = tier < 1;
+  const color = locked ? "var(--hint)" : TIER_COLORS[tier];
+
+  let html = '';
+
+  // иконка в форме
+  html += '<div class="aw-modal-icon-wrap" style="--aw-color:' + color + '">' +
+            shapeSvg(def.type, color) +
+            '<span class="aw-modal-icon aw-icon-svg">' + def.icon + '</span>' +
+          '</div>';
+
+  // название
+  html += '<h3 style="text-align:center;margin:0 0 4px;">' + def.title + '</h3>';
+
+  // текущий тир / статус
+  if (def.type === "manual") {
+    html += '<div class="aw-modal-tier" style="color:' + color + ';text-align:center;">' +
+            (locked ? 'Вручается лично' : 'Вручено лично') + '</div>';
+  } else {
+    html += '<div class="aw-modal-tier" style="color:' + color + ';text-align:center;">' +
+            (locked ? 'Пока не получена'
+                    : 'Текущий тир: ' + TIER_ROMAN[tier]) + '</div>';
+  }
+
+  // описание
+  html += '<div class="aw-modal-desc" style="text-align:center;">' + def.desc + '</div>';
+
+  // список тиров (только для авто)
+  if (def.type === "auto" && def.tierLabels) {
+    html += '<div class="aw-tier-list">';
+    def.tierLabels.forEach((label, i) => {
+      const t = i + 1;
+      const done = t <= tier;
+      const isCurrent = t === tier;
+      const rowColor = done ? TIER_COLORS[t] : "var(--hint)";
+      html += '<div class="aw-tier-row' + (done ? ' done' : '') + '">' +
+                '<span class="tr-roman" style="color:' + rowColor + '">' + TIER_ROMAN[t] + '</span>' +
+                '<span class="tr-label">' + label + '</span>' +
+                '<span class="tr-check">' + (done ? '✓' : (isCurrent ? '' : '·')) + '</span>' +
+              '</div>';
+    });
+    html += '</div>';
+
+    // прогресс к следующему тиру (демо-заглушка)
+    if (!locked && tier < 4) {
+      const nextLabel = def.tierLabels[tier]; // следующий
+      html += '<div class="aw-progress-box">' +
+                '<div class="apb-text">До тира ' + TIER_ROMAN[tier + 1] + ': ' + nextLabel + '</div>' +
+                '<div class="apb-bar"><div class="apb-fill" style="width:60%"></div></div>' +
+              '</div>';
+    } else if (tier === 4) {
+      html += '<div class="aw-progress-box"><div class="apb-text">Максимальный тир достигнут 🏆</div></div>';
+    }
+  }
+
+  // дата (заглушка — демо)
+  if (!locked) {
+    html += '<div class="aw-modal-date demo">Получено: демо-данные</div>';
+  }
+
+  document.getElementById('awModalBody').innerHTML = html;
+  document.getElementById('awModalOverlay').classList.add('show');   // ← show, не open
+}
+
+function closeAwardModal() {
+  document.getElementById('awModalOverlay').classList.remove('show'); // ← show, не open
+}
+
     async function checkAccess() {
       if (!user?.id) { showScreen('locked'); return; }
       try {
@@ -1918,9 +1993,14 @@ function getLevel(score) {
         document.getElementById('m-awards-count').textContent = aw.length;
         document.getElementById('m-awards').innerHTML = aw.length
           ? aw.map(a => {
-              const info = awardById(a.id) || { emoji: "🏅", title: a.title || "" };
+              const info = awardById(a.id) || { title: a.title || "", type: "auto", icon: "🏅" };
               const dateStr = a.date ? " · " + new Date(a.date).toLocaleDateString('ru-RU') : "";
-              return `<span class="m-award" title="${info.title}${dateStr}">${info.emoji}</span>`;
+              const tier = a.tier || 1;
+              const color = TIER_COLORS[tier] || "var(--accent)";
+              return '<div class="m-award-badge" title="' + info.title + dateStr + '">' +
+                       shapeSvg(info.type, color) +
+                       '<span class="m-award-ico">' + info.icon + '</span>' +
+                     '</div>';
             }).join('')
           : '';
         document.getElementById('m-awards').classList.toggle('scrollable', aw.length > 12);
@@ -1987,9 +2067,9 @@ function getLevel(score) {
       const panel = document.getElementById('owner-panel');
       const ownedIds = (currentAwards || []).map(a => a.id);
 
-      const options = AWARDS.map(a => {
+      const options = AWARD_DEFS.filter(a => a.type === 'manual').map(a => {
         const has = ownedIds.includes(a.id);
-        return `<option value="${a.id}">${a.emoji} ${a.title}${has ? ' ✓' : ''}</option>`;
+        return `<option value="${a.id}">${a.title}${has ? ' ✓' : ''}</option>`;
       }).join('');
 
       panel.innerHTML = `
@@ -2032,11 +2112,11 @@ function getLevel(score) {
         });
         const data = await res.json();
         if (data.ok) {
-          showToast(`Выдано: ${info.emoji} ${info.title}`);
+          showToast(`Выдано: ${info.title}`);
           openPublicProfile(currentTargetId, null); // обновляем модалку
           loadRating();
         } else if (data.error === "already has") {
-          showToast('⚠️ У участника уже есть эта награда');
+          showToast('У участника уже есть эта награда');
         } else {
           showToast('Не удалось выдать');
         }
@@ -2049,7 +2129,7 @@ function getLevel(score) {
       const info = awardById(awardId);
       tg.HapticFeedback?.impactOccurred('medium');
       // ✅ подтверждение через нативное окно Telegram
-      tg.showConfirm(`Снять награду «${info.emoji} ${info.title}» у участника?`, (ok) => {
+      tg.showConfirm(`Снять награду «${info.title}» у участника?`, (ok) => {
         if (!ok) return;
         doTakeAward(awardId, info);
       });
@@ -2064,7 +2144,7 @@ function getLevel(score) {
         });
         const data = await res.json();
         if (data.ok) {
-          showToast(`Снято: ${info.emoji} ${info.title}`);
+          showToast(`Снято: ${info.title}`);
           openPublicProfile(currentTargetId, null); // обновляем модалку
           loadRating();
         } else {
