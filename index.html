@@ -607,7 +607,8 @@ function getLevel(score) {
 
     function detectPattern(axisPct, survey){
       const p = axisPct || {};
-      const list = (survey && survey.patterns) || [];
+      const list = (survey && (Array.isArray(survey.patternRules) ? survey.patternRules
+                   : (Array.isArray(survey.patterns) ? survey.patterns : []))) || [];
       // поддерживаем ТОЛЬКО массивный формат [{test,title,text}]
       // (объектный формат patterns[axis] используется для слепых зон/R-сигналов)
       if (!Array.isArray(list)) return null;
@@ -2212,11 +2213,12 @@ function getLevel(score) {
       document.getElementById('mar-body').innerHTML =
         '<div class="mar-done"><div class="big-check">' + level.emoji + '</div>' +
         '<h3>' + level.title + '</h3>' +
-        '<div class="result-score" style="margin:8px 0;">Дисциплина: ' + fin.percent + '%</div>' +
+        '<div class="result-score" style="margin:8px 0;">' + (marathonMeta?.resultLabel || 'Результат') + ': ' + fin.percent + '%</div>' +
         '<p>' + level.text + '</p>' +
         '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin:20px 0;">' +
         '<div style="font-size:14px;color:var(--text);">🏆 Марафон пройден!</div>' +
         '<div style="font-size:13px;color:var(--hint);margin-top:6px;">+' + fin.bonus + ' баллов · награда получена · ' + fin.marked + ' дней отмечено</div></div>' +
+        (fin.breakdown ? '<div class="section-title" style="margin:4px 0 12px;">Разбор месяца</div>' + renderMarathonBreakdown(fin.breakdown) : '') +
         '<button class="join-btn" style="width:100%" onclick="backFromMarathon()">Готово</button></div>';
       refreshProfileSilently();
     }
@@ -2242,62 +2244,79 @@ function getLevel(score) {
       return '<div class="section-title" style="margin-top:20px">История попыток</div>' + rows;
     }
 
-        // 📊 Подробный отчёт по завершённому марафону
+      // 🏷 подписи берём из marathon JSON (q.label), это — запасной вариант для старых записей
+    const QUALITY_LABELS = {
+      q1: "Продуктивность", q2: "Решительность", q3: "Активность",
+      q4: "Сосредоточенность", q5: "Целеустремлённость"
+    };
+
+    function marathonVerdict(q, avg) {
+      if (!q || !q.verdicts) return '';
+      if (avg >= 4.2) return q.verdicts.high || '';
+      if (avg >= 3)   return q.verdicts.mid  || '';
+      return q.verdicts.low || '';
+    }
+
+    // общий рендер разбивки — используется и в отчёте истории, и на финише
+    function renderMarathonBreakdown(bd) {
+      const qMap = {};
+      (marathonMeta?.questions || []).forEach(q => { qMap[q.key] = q; });
+      let rowsHtml = '';
+      for (const key in (bd || {})) {
+        const q = qMap[key];
+        const label = (q && q.label) || QUALITY_LABELS[key] || (q ? q.q : key);
+        const b = bd[key];
+        const pct = Math.round((b.avg / 5) * 100);
+        const isYesNo = q && q.type === 'yesno';
+        const valTxt = isYesNo ? (pct + '% дней') : (b.avg + ' / 5');
+        const vrd = marathonVerdict(q, b.avg);
+        rowsHtml +=
+          '<div style="margin-bottom:16px;text-align:left;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:13px;margin-bottom:5px;">' +
+              '<span style="color:var(--text);font-weight:600;flex:1;min-width:0;">' + label + '</span>' +
+              '<span style="color:var(--accent);font-weight:700;white-space:nowrap;flex-shrink:0;">' + valTxt + '</span>' +
+            '</div>' +
+            '<div class="mar-progress" style="margin:0;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
+            (vrd ? '<div style="font-size:12px;color:var(--hint);line-height:1.45;margin-top:6px;">' + vrd + '</div>' : '') +
+          '</div>';
+      }
+      return rowsHtml;
+    }
+
+    //  Подробный отчёт по завершённому марафону
     function openMarathonReport(idx) {
       tg.HapticFeedback?.impactOccurred('light');
       const h = window.MARATHON_HISTORY[idx];
       if (!h) return;
-            // 🏷 качества для итогового отчёта (только тут, вопросы при заполнении не меняются)
-      const QUALITY_LABELS = {
-        q1: "Продуктивность",
-        q2: "Решительность",
-        q3: "Активность",
-        q4: "Сосредоточенность",
-        q5: "Целеустремлённость"
-      };
 
-      // сопоставляем ключи вопросов с их текстом из meta
-      const qMap = {};
-      (marathonMeta?.questions || []).forEach(q => { qMap[q.key] = q; });
-
-      // строки по каждому вопросу
-      let rowsHtml = '';
-      const bd = h.breakdown || {};
-      for (const key in bd) {
-        const q = qMap[key];
-        const qTitle = QUALITY_LABELS[key] || (q ? q.q : key);
-        const b = bd[key];
-        // визуальная полоска: среднее из 5
-        const pct = Math.round((b.avg / 5) * 100);
-        rowsHtml +=
-          '<div style="margin-bottom:14px;text-align:left;">' +
-            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:13px;margin-bottom:5px;">' +
-              '<span style="color:var(--text);flex:1;min-width:0;">' + qTitle + '</span>' +
-              '<span style="color:var(--accent);font-weight:700;white-space:nowrap;flex-shrink:0;">' + b.avg + ' / 5</span>' +
-            '</div>' +
-            '<div class="mar-progress" style="margin:0;"><div class="mar-progress-fill" style="width:' + pct + '%"></div></div>' +
-          '</div>';
+      let level = { title: 'Пройден', emoji: '🏆', text: '' };
+      if (marathonMeta?.levels) {
+        level = marathonMeta.levels.find(l => h.percent >= l.min) || marathonMeta.levels[marathonMeta.levels.length - 1];
       }
 
-      // средний балл по марафону (среднее из всех avg по вопросам)
+      const bd = h.breakdown || {};
       const avgValues = Object.values(bd).map(b => b.avg).filter(v => typeof v === 'number');
       const avgScore = avgValues.length
-        ? (avgValues.reduce((a, b) => a + b, 0) / avgValues.length).toFixed(1)
-        : '—';
+        ? (avgValues.reduce((a, b) => a + b, 0) / avgValues.length).toFixed(1) : '—';
+      const rowsHtml = renderMarathonBreakdown(bd);
 
       const html =
         '<div class="modal-card" onclick="event.stopPropagation()" style="max-width:360px;">' +
           '<span class="close-x" onclick="closeMarathonReport()">✕</span>' +
-          '<div style="font-size:44px;margin-bottom:6px;">🏆</div>' +
-          '<div class="m-name">Пройден · ' + h.percent + '%</div>' +
-          '<div class="m-place">' + fmtDate(h.start_date) + ' → ' + fmtDate(h.ended) + '</div>' +
-          '<div class="m-stats">' +
-            '<div class="m-box"><div class="v">' + h.marked + '</div><div class="l">Дней</div></div>' +
-            '<div class="m-box"><div class="v">' + avgScore + '</div><div class="l">Средний балл</div></div>' +
-            '<div class="m-box"><div class="v">+' + h.bonus + '</div><div class="l">Баллов</div></div>' +
+          '<div class="modal-body">' +
+            '<div style="font-size:44px;margin-bottom:6px;">' + level.emoji + '</div>' +
+            '<div class="m-name">' + level.title + '</div>' +
+            '<div class="result-score" style="margin:4px 0 6px;">' + (marathonMeta?.resultLabel || 'Результат') + ': ' + h.percent + '%</div>' +
+            '<div class="m-place">' + fmtDate(h.start_date) + ' → ' + fmtDate(h.ended) + '</div>' +
+            (level.text ? '<div style="font-size:13px;color:var(--hint);line-height:1.5;margin-bottom:16px;">' + level.text + '</div>' : '') +
+            '<div class="m-stats">' +
+              '<div class="m-box"><div class="v">' + h.marked + '</div><div class="l">Дней</div></div>' +
+              '<div class="m-box"><div class="v">' + avgScore + '</div><div class="l">Средний балл</div></div>' +
+              '<div class="m-box"><div class="v">+' + h.bonus + '</div><div class="l">Баллов</div></div>' +
+            '</div>' +
+            '<div class="section-title" style="margin:14px 0 12px;">Разбор месяца</div>' +
+            (rowsHtml || '<div class="empty" style="padding:10px 0;font-size:12px;">Нет данных по вопросам</div>') +
           '</div>' +
-          '<div class="section-title" style="margin:10px 0;">Разбивка по вопросам</div>' +
-          (rowsHtml || '<div class="empty" style="padding:10px 0;font-size:12px;">Нет данных по вопросам</div>') +
         '</div>';
 
       const modal = document.getElementById('marathon-report');
