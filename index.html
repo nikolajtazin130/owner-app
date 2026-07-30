@@ -225,19 +225,26 @@
   background:rgba(255,255,255,0.02);
 }
 
-/* --- РУЧНЫЕ: ромб (печать) + постоянное свечение --- */
-.aw-manual .aw-shape {
-  position:absolute; inset:4px; border-radius:8px;
-  border:2px solid var(--aw-color);
-  transform:rotate(45deg);
-  background:rgba(255,255,255,0.02);
-}
+/* --- РУЧНЫЕ: шестиугольник (медаль-знак) --- */
 .aw-manual .aw-icon-wrap {
-  filter:drop-shadow(0 0 6px var(--aw-color));
+  filter: drop-shadow(0 0 5px var(--aw-color));
 }
+.aw-manual .aw-shape {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.02);
+  border: 2px solid var(--aw-color);
+  /* правильный шестиугольник (плоский верх) */
+  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
+}
+/* внутренняя обводка-«печать» */
 .aw-manual .aw-shape:after {
-  content:""; position:absolute; inset:3px; border-radius:6px;
-  border:1px solid var(--aw-color); opacity:0.45;
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--aw-color);
+  opacity: 0.4;
+  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
 }
 
 /* --- финальный тир IV: свечение + пульсация --- */
