@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OWNER</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="data/awards.js?v=4"></script>   <!-- награды менять v=1 каждый раз, когда меняю awards.js-->
+  <script src="data/awards.js?v=5"></script>   <!-- награды менять v=1 каждый раз, когда меняю awards.js-->
   <style>
     :root {
       --bg: var(--tg-theme-bg-color, #0f0f0f);
@@ -118,6 +118,7 @@
 .m-level { font-size:12px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:2px 10px; display:inline-block; margin-bottom:14px; }
             /* === ПУБЛИЧНЫЙ ПРОФИЛЬ (модалка) === */
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:200; padding:20px; }
+    #awModalOverlay { z-index:300; }
     .modal-overlay.show { display:flex; }
     .modal-card {
       background:var(--card);
@@ -280,6 +281,11 @@
 .aw-progress-box .apb-fill { height:100%; background:var(--accent); border-radius:6px; }
 .aw-modal-date { font-size:12px; color:var(--hint); text-align:center; margin-top:4px; }
 .aw-modal-date.demo { opacity:0.7; font-style:italic; }
+        /* награды внутри модалки профиля */
+    #m-awards .aw-grid { width:100%; gap:14px 6px; }
+    #m-awards .aw-badge { width:31%; }
+    #m-awards .aw-icon-wrap { width:56px; height:56px; }
+    #m-awards .aw-icon-svg svg { width:22px; height:22px; }
   </style>
 </head>
 <body>
@@ -1992,18 +1998,20 @@ function closeAwardModal() {
         const aw = p.awards_list || [];
         document.getElementById('m-awards-count').textContent = aw.length;
         document.getElementById('m-awards').innerHTML = aw.length
-          ? aw.map(a => {
-              const info = awardById(a.id) || { title: a.title || "", type: "auto", icon: "🏅" };
-              const dateStr = a.date ? " · " + new Date(a.date).toLocaleDateString('ru-RU') : "";
+          ? '<div class="aw-grid">' + aw.map(a => {
+              const def = awardById(a.id);
+              if (!def) return '';
               const tier = a.tier || 1;
-              const color = TIER_COLORS[tier] || "var(--accent)";
-              return '<div class="m-award-badge" title="' + info.title + dateStr + '">' +
-                       shapeSvg(info.type, color) +
-                       '<span class="m-award-ico">' + info.icon + '</span>' +
-                     '</div>';
-            }).join('')
-          : '';
-        document.getElementById('m-awards').classList.toggle('scrollable', aw.length > 12);
+              // дата (только у ручных наград — у авто её нет)
+              let sub = '';
+              if (a.date) {
+                sub = new Date(a.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+              }
+              return renderAwardBadge(def, tier, sub);
+            }).filter(Boolean).join('') + '</div>'
+          : '<div class="empty" style="padding:16px 0;font-size:12px;">Наград пока нет</div>';
+        // скролл больше не нужен — сетка сама переносит; убираем класс
+        document.getElementById('m-awards').classList.remove('scrollable');
 
         // 🫶 рисуем кнопки реакций
         renderReactions(p.reactions || {}, p.my_reactions || []);
