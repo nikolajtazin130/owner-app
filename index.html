@@ -1903,11 +1903,13 @@ function closeAwardModal() {
           renderSeasons(seasons);
           fillProfile();
 
-          const firstSeen = data.profile?.first_seen;
-          if (firstSeen) {
-            const days = Math.floor((Date.now() - Number(firstSeen)) / 86400000);
-            document.getElementById('days-count').textContent = days;
-          }
+        // 🆕 честные дни: берём active_days с воркера (fallback на first_seen)
+          const daysVal = (typeof data.profile?.active_days === "number")
+            ? data.profile.active_days
+            : (data.profile?.first_seen
+                ? Math.floor((Date.now() - Number(data.profile.first_seen)) / 86400000)
+                : 0);
+          document.getElementById('days-count').textContent = daysVal;
 
           READ_POSTS = (data.profile && data.profile.read_posts) || []; // 🆕
           window.PROFILE = data.profile;
@@ -2061,8 +2063,11 @@ function closeAwardModal() {
         // 🫶 рисуем кнопки реакций
         renderReactions(p.reactions || {}, p.my_reactions || []);
 
-        // 👑 если это OWNER — показываем панель управления наградами и статами
-        if (String(user.id) === String(OWNER_ID)) renderOwnerPanel(aw);
+      // 👑 если это OWNER — показываем панель управления наградами и статами
+        if (String(user.id) === String(OWNER_ID)) {
+          currentFrozen = (p.frozen === true);   // 🆕 запоминаем статус паузы
+          renderOwnerPanel(aw);
+        }
       } catch (e) {
         document.getElementById('m-name').textContent = 'Ошибка загрузки';
       }
@@ -2149,12 +2154,16 @@ function closeAwardModal() {
             <input type="number" id="edit-score-input" placeholder="+/- Баллы (напр. 50 или -10)" style="flex:2;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;">
             <button onclick="editUserStat('score')" style="flex:1;background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;">Добавить</button>
           </div>
-          <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;margin-bottom:16px;">
             <input type="number" id="edit-days-input" placeholder="Установить дни (напр. 365)" style="flex:2;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;">
             <button onclick="editUserStat('days')" style="flex:1;background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;">Задать</button>
           </div>
+
+          <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">⏸ Статус участника</div>
+          <div id="freeze-box"></div>
         </div>`;
       onAwardSelectChange(); // спрятать тир для noTiers-наград сразу
+      renderFreezeButton();  // 🆕 рисуем кнопку паузы
     }
 
     // прячем выбор ступени для наград без тиров
@@ -2165,6 +2174,46 @@ function closeAwardModal() {
       const opt = sel.options[sel.selectedIndex];
       const noTiers = opt && opt.dataset.notiers === '1';
       tierSel.style.display = noTiers ? 'none' : 'block';
+    }
+
+        // 🆕 состояние заморозки текущего просматриваемого участника
+    let currentFrozen = false;
+
+    function renderFreezeButton() {
+      const box = document.getElementById('freeze-box');
+      if (!box) return;
+      if (currentFrozen) {
+        box.innerHTML =
+          '<div style="font-size:12px;color:#ff8a8a;margin-bottom:8px;">Участник на паузе: дни не идут, скрыт из рейтинга.</div>' +
+          '<button onclick="toggleFreeze(false)" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">▶️ Вернуть в клуб</button>';
+      } else {
+        box.innerHTML =
+          '<div style="font-size:12px;color:var(--hint);margin-bottom:8px;">Отметь, если участника выкинуло за неуплату. Дни встанут на паузу.</div>' +
+          '<button onclick="toggleFreeze(true)" style="width:100%;background:#3a1c1c;color:#ff8a8a;border:1px solid #ff8a8a;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">⏸ Отметить отписавшимся</button>';
+      }
+    }
+
+    async function toggleFreeze(freeze) {
+      if (!currentTargetId) return;
+      tg.HapticFeedback?.impactOccurred('medium');
+      try {
+        const res = await fetch(WORKER_URL + "?action=admin_freeze&user_id=" + user.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_id: currentTargetId, freeze: freeze })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          currentFrozen = data.frozen;
+          showToast(freeze
+            ? `На паузе. Дни: ${data.days}`
+            : `Возвращён. Счётчик пошёл дальше.`);
+          renderFreezeButton();
+          loadRating();
+        } else {
+          showToast('Не удалось: ' + (data.error || ''));
+        }
+      } catch (e) { showToast('Ошибка сети'); }
     }
 
     // 👑 Выдать награду
