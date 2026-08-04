@@ -2167,22 +2167,6 @@ function closeAwardModal() {
       tierSel.style.display = noTiers ? 'none' : 'block';
     }
 
-          <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🛠 Управление статами</div>
-          
-          <!-- Редактор баллов -->
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <input type="number" id="edit-score-input" placeholder="+/- Баллы (напр. 50 или -10)" style="flex:2;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;">
-            <button onclick="editUserStat('score')" style="flex:1;background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;">Добавить</button>
-          </div>
-
-          <!-- Редактор дней -->
-          <div style="display:flex;gap:8px;">
-            <input type="number" id="edit-days-input" placeholder="Установить дни (напр. 365)" style="flex:2;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;">
-            <button onclick="editUserStat('days')" style="flex:1;background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;">Задать</button>
-          </div>
-        </div>`;
-    }
-
     // 👑 Выдать награду
     async function giveAward() {
       const awardId = document.getElementById('award-select').value;
