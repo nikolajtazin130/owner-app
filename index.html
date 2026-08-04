@@ -1778,9 +1778,19 @@ function getLevel(score) {
 
     // Рендер сетки наград. Пока показываем демо-тиры; на этапе бэкенда
     // заменим demoTiers на реальные данные из profile.
-        // сколько наград показывать свёрнуто
+    // сколько наград показывать свёрнуто
     const AWARDS_PREVIEW = 6;
     let awardsExpanded = false;
+
+    // строит карту { id: {tier, date} } из profile
+    function buildEarnedMap(profile) {
+      const map = {};
+      // авто-награды приходят в profile через отдельный расчёт? Нет — считаем на фронте зеркально воркеру
+      // проще: воркер уже кладёт всё в awards_list только для публичного профиля.
+      // для СВОЕГО профиля используем profile.awards (ручные) + локальный расчёт авто.
+      // Но чтобы не дублировать логику — просим воркер отдавать awards_list в status (см. 3.4)
+      return map;
+    }
 
     function renderAwardsGrid(profile) {
       const box = document.getElementById('awards-list');
@@ -1788,21 +1798,18 @@ function getLevel(score) {
         box.innerHTML = '<div class="empty" style="color:#ff8a8a">awards.js не загрузился</div>';
         return;
       }
-      // 🎨 ДЕМО: показываем все бейджи на разных тирах для оценки вида
-      const demoTiers = {
-        loyal_days:1, explorer:2, full_map:3, mirror:4,
-        marathoner:0, long_effort:2, first_echo:3, not_passed:4,
-        circle_support:2, initiator:3, owner_friend:4, role_model:1,
-        precise:0, march_2025:4, stays_online:2, adds_context:3
-      };
-      const demoSubs = {
-        loyal_days:'до серебра: 8 дн.',
-        march_2025:'Вручено лично',
-        owner_friend:'Вручено лично'
-      };
 
-      // 🏅 только полученные награды (tier > 0) — их и показываем
-      const earnedDefs = AWARD_DEFS.filter(d => (demoTiers[d.id] || 0) > 0);
+      // awards_list приходит от воркера (см. правку 3.4)
+      const earned = (profile && profile.awards_list) || [];
+      const tierById = {};
+      const dateById = {};
+      earned.forEach(a => {
+        // если одна и та же награда пришла дважды — берём максимальный tier
+        if (!tierById[a.id] || a.tier > tierById[a.id]) tierById[a.id] = a.tier;
+        if (a.date) dateById[a.id] = a.date;
+      });
+
+      const earnedDefs = AWARD_DEFS.filter(d => (tierById[d.id] || 0) > 0);
       document.getElementById('awards-count').textContent = earnedDefs.length;
 
       if (!earnedDefs.length) {
@@ -1810,21 +1817,23 @@ function getLevel(score) {
         return;
       }
 
-      // свёрнуто показываем только первые AWARDS_PREVIEW
       const shown = awardsExpanded ? earnedDefs : earnedDefs.slice(0, AWARDS_PREVIEW);
-      const hiddenCount = earnedDefs.length - shown.length;
 
       let html = '<div class="aw-grid">' +
-        shown.map(d => renderAwardBadge(d, demoTiers[d.id] || 0, demoSubs[d.id] || '')).join('') +
+        shown.map(d => {
+          let sub = '';
+          if (d.type === 'manual' && dateById[d.id]) {
+            sub = new Date(dateById[d.id]).toLocaleDateString('ru-RU', { day:'numeric', month:'short', year:'numeric' });
+          }
+          return renderAwardBadge(d, tierById[d.id] || 0, sub);
+        }).join('') +
       '</div>';
 
-      // кнопка "Показать все / Свернуть"
       if (earnedDefs.length > AWARDS_PREVIEW) {
         html += '<div class="aw-toggle" onclick="toggleAwards()">' +
           (awardsExpanded ? 'Свернуть ↑' : 'Показать все (' + earnedDefs.length + ') ↓') +
         '</div>';
       }
-
       box.innerHTML = html;
     }
 
@@ -1835,72 +1844,50 @@ function getLevel(score) {
     }
 
     function openAwardModal(id, tier) {
-  const def = awardById(id);
-  if (!def) return;
-  tier = Number(tier) || 0;
-  const locked = tier < 1;
-  const color = locked ? "var(--hint)" : TIER_COLORS[tier];
+      const def = awardById(id);
+      if (!def) return;
+      tier = Number(tier) || 0;
+      const noTiers = def.noTiers === true;
+      const locked = tier < 1;
+      const color = locked ? "var(--hint)" : (noTiers ? "#c8a86b" : TIER_COLORS[tier]);
 
-  let html = '';
-
-  // иконка в форме
-  html += '<div class="aw-modal-icon-wrap" style="--aw-color:' + color + '">' +
-            shapeSvg(def.type, color) +
-            '<span class="aw-modal-icon aw-icon-svg">' + def.icon + '</span>' +
-          '</div>';
-
-  // название
-  html += '<h3 style="text-align:center;margin:0 0 4px;">' + def.title + '</h3>';
-
-  // текущий тир / статус
-  if (def.type === "manual") {
-    html += '<div class="aw-modal-tier" style="color:' + color + ';text-align:center;">' +
-            (locked ? 'Вручается лично' : 'Вручено лично') + '</div>';
-  } else {
-    html += '<div class="aw-modal-tier" style="color:' + color + ';text-align:center;">' +
-            (locked ? 'Пока не получена'
-                    : 'Текущий тир: ' + TIER_ROMAN[tier]) + '</div>';
-  }
-
-  // описание
-  html += '<div class="aw-modal-desc" style="text-align:center;">' + def.desc + '</div>';
-
-  // список тиров (только для авто)
-  if (def.type === "auto" && def.tierLabels) {
-    html += '<div class="aw-tier-list">';
-    def.tierLabels.forEach((label, i) => {
-      const t = i + 1;
-      const done = t <= tier;
-      const isCurrent = t === tier;
-      const rowColor = done ? TIER_COLORS[t] : "var(--hint)";
-      html += '<div class="aw-tier-row' + (done ? ' done' : '') + '">' +
-                '<span class="tr-roman" style="color:' + rowColor + '">' + TIER_ROMAN[t] + '</span>' +
-                '<span class="tr-label">' + label + '</span>' +
-                '<span class="tr-check">' + (done ? '✓' : (isCurrent ? '' : '·')) + '</span>' +
+      let html = '';
+      html += '<div class="aw-modal-icon-wrap" style="--aw-color:' + color + '">' +
+                shapeSvg(def.type, color) +
+                '<span class="aw-modal-icon aw-icon-svg">' + def.icon + '</span>' +
               '</div>';
-    });
-    html += '</div>';
+      html += '<h3 style="text-align:center;margin:0 0 4px;">' + def.title + '</h3>';
 
-    // прогресс к следующему тиру (демо-заглушка)
-    if (!locked && tier < 4) {
-      const nextLabel = def.tierLabels[tier]; // следующий
-      html += '<div class="aw-progress-box">' +
-                '<div class="apb-text">До тира ' + TIER_ROMAN[tier + 1] + ': ' + nextLabel + '</div>' +
-                '<div class="apb-bar"><div class="apb-fill" style="width:60%"></div></div>' +
-              '</div>';
-    } else if (tier === 4) {
-      html += '<div class="aw-progress-box"><div class="apb-text">Максимальный тир достигнут 🏆</div></div>';
+      if (def.type === "manual") {
+        html += '<div class="aw-modal-tier" style="color:' + color + ';text-align:center;">' +
+                (locked ? 'Вручается лично' : (noTiers ? 'Вручено лично' : 'Вручено · ' + TIER_ROMAN[tier])) +
+                '</div>';
+      } else {
+        html += '<div class="aw-modal-tier" style="color:' + color + ';text-align:center;">' +
+                (locked ? 'Пока не получена' : 'Текущий тир: ' + TIER_ROMAN[tier]) + '</div>';
+      }
+
+      html += '<div class="aw-modal-desc" style="text-align:center;">' + def.desc + '</div>';
+
+      // список тиров — только для многоступенчатых
+      if (def.tierLabels && !noTiers) {
+        html += '<div class="aw-tier-list">';
+        def.tierLabels.forEach((label, i) => {
+          const t = i + 1;
+          const done = t <= tier;
+          const rowColor = done ? TIER_COLORS[t] : "var(--hint)";
+          html += '<div class="aw-tier-row' + (done ? ' done' : '') + '">' +
+                    '<span class="tr-roman" style="color:' + rowColor + '">' + TIER_ROMAN[t] + '</span>' +
+                    '<span class="tr-label">' + label + '</span>' +
+                    '<span class="tr-check">' + (done ? '✓' : '·') + '</span>' +
+                  '</div>';
+        });
+        html += '</div>';
+      }
+
+      document.getElementById('awModalBody').innerHTML = html;
+      document.getElementById('awModalOverlay').classList.add('show');
     }
-  }
-
-  // дата (заглушка — демо)
-  if (!locked) {
-    html += '<div class="aw-modal-date demo">Получено: демо-данные</div>';
-  }
-
-  document.getElementById('awModalBody').innerHTML = html;
-  document.getElementById('awModalOverlay').classList.add('show');   // ← show, не open
-}
 
 function closeAwardModal() {
   document.getElementById('awModalOverlay').classList.remove('show'); // ← show, не open
@@ -2131,23 +2118,54 @@ function closeAwardModal() {
     // 👑 Панель OWNER: управление профилем
     function renderOwnerPanel(currentAwards) {
       const panel = document.getElementById('owner-panel');
-      const ownedIds = (currentAwards || []).map(a => a.id);
+      const owned = {};
+      (currentAwards || []).forEach(a => { if (a.type === 'manual' || awardById(a.id)?.type === 'manual') owned[a.id] = a.tier || 1; });
 
       const options = AWARD_DEFS.filter(a => a.type === 'manual').map(a => {
-        const has = ownedIds.includes(a.id);
-        return `<option value="${a.id}">${a.title}${has ? ' ✓' : ''}</option>`;
+        const has = owned[a.id];
+        const mark = has ? ' ✓' + (a.noTiers ? '' : ' (' + TIER_ROMAN[has] + ')') : '';
+        return `<option value="${a.id}" data-notiers="${a.noTiers ? 1 : 0}">${a.title}${mark}</option>`;
       }).join('');
 
       panel.innerHTML = `
         <div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:18px;padding-top:16px;text-align:left;">
           <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">👑 Награды</div>
-          <select id="award-select" style="width:100%;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;margin-bottom:10px;">
+          <select id="award-select" onchange="onAwardSelectChange()" style="width:100%;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;margin-bottom:10px;">
             ${options}
+          </select>
+          <select id="award-tier-select" style="width:100%;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;margin-bottom:10px;">
+            <option value="1">Ступень I</option>
+            <option value="2">Ступень II</option>
+            <option value="3">Ступень III</option>
+            <option value="4">Ступень IV</option>
           </select>
           <div style="display:flex;gap:8px;margin-bottom:16px;">
             <button onclick="giveAward()" style="flex:1;background:var(--accent);color:#000;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">Выдать 🏅</button>
             <button onclick="takeAward()" style="flex:1;background:#3a1c1c;color:#ff8a8a;border:1px solid #ff8a8a;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">Снять ✕</button>
           </div>
+
+          <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🛠 Управление статами</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input type="number" id="edit-score-input" placeholder="+/- Баллы (напр. 50 или -10)" style="flex:2;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;">
+            <button onclick="editUserStat('score')" style="flex:1;background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;">Добавить</button>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="number" id="edit-days-input" placeholder="Установить дни (напр. 365)" style="flex:2;padding:12px;border-radius:12px;background:var(--bg);color:var(--text);border:1px solid rgba(255,255,255,0.1);font-size:14px;">
+            <button onclick="editUserStat('days')" style="flex:1;background:var(--card);color:var(--accent);border:1px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;">Задать</button>
+          </div>
+        </div>`;
+      onAwardSelectChange(); // спрятать тир для noTiers-наград сразу
+    }
+
+    // прячем выбор ступени для наград без тиров
+    function onAwardSelectChange() {
+      const sel = document.getElementById('award-select');
+      const tierSel = document.getElementById('award-tier-select');
+      if (!sel || !tierSel) return;
+      const opt = sel.options[sel.selectedIndex];
+      const noTiers = opt && opt.dataset.notiers === '1';
+      tierSel.style.display = noTiers ? 'none' : 'block';
+    }
 
           <div style="font-size:12px;color:var(--hint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🛠 Управление статами</div>
           
@@ -2169,20 +2187,19 @@ function closeAwardModal() {
     async function giveAward() {
       const awardId = document.getElementById('award-select').value;
       const info = awardById(awardId);
+      const tier = info?.noTiers ? 1 : parseInt(document.getElementById('award-tier-select').value) || 1;
       tg.HapticFeedback?.impactOccurred('medium');
       try {
         const res = await fetch(WORKER_URL + "?action=give_award&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ target_id: currentTargetId, award_id: awardId })
+          body: JSON.stringify({ target_id: currentTargetId, award_id: awardId, tier: tier })
         });
         const data = await res.json();
         if (data.ok) {
-          showToast(`Выдано: ${info.title}`);
-          openPublicProfile(currentTargetId, null); // обновляем модалку
+          showToast(`Выдано: ${info.title}${info.noTiers ? '' : ' (' + TIER_ROMAN[tier] + ')'}`);
+          openPublicProfile(currentTargetId, null);
           loadRating();
-        } else if (data.error === "already has") {
-          showToast('У участника уже есть эта награда');
         } else {
           showToast('Не удалось выдать');
         }
