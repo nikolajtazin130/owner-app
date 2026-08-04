@@ -282,10 +282,31 @@
 .aw-modal-date { font-size:12px; color:var(--hint); text-align:center; margin-top:4px; }
 .aw-modal-date.demo { opacity:0.7; font-style:italic; }
         /* награды внутри модалки профиля */
+    .m-awards-head { font-size:12px; color:var(--hint); text-transform:uppercase; letter-spacing:1px; text-align:left; margin:14px 0 10px; }
+    #m-awards {
+      max-height:200px;               /* окно фикс. высоты */
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      padding:8px;
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:12px;
+      background:var(--bg);
+    }
+    #m-awards::-webkit-scrollbar { width:5px; }
+    #m-awards::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.2); border-radius:3px; }
     #m-awards .aw-grid { width:100%; gap:14px 6px; }
     #m-awards .aw-badge { width:31%; }
-    #m-awards .aw-icon-wrap { width:56px; height:56px; }
-    #m-awards .aw-icon-svg svg { width:22px; height:22px; }
+    #m-awards .aw-icon-wrap { width:52px; height:52px; }
+    #m-awards .aw-icon-svg svg { width:20px; height:20px; }
+    /* когда наград нет — окно без рамки/фона */
+    #m-awards.empty-awards { border:none; background:none; padding:0; max-height:none; }
+      .aw-toggle {
+      text-align:center; margin-top:16px; padding:12px;
+      font-size:13px; font-weight:600; color:var(--accent);
+      background:var(--card); border:1px solid rgba(200,168,107,0.3);
+      border-radius:12px; cursor:pointer; transition:transform .1s;
+    }
+    .aw-toggle:active { transform:scale(0.97); }
   </style>
 </head>
 <body>
@@ -452,8 +473,9 @@
         <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
           Заданий выполнено: <span id="m-tasks" style="color:var(--accent);font-weight:600;">0</span>
         </div>
+                <div class="react-row" id="react-box"></div>
+        <div class="m-awards-head" id="m-awards-head" style="display:none;">Награды</div>
         <div class="m-awards" id="m-awards"></div>
-        <div class="react-row" id="react-box"></div>
         <div id="owner-panel"></div>
       </div>
     </div>
@@ -1756,6 +1778,10 @@ function getLevel(score) {
 
     // Рендер сетки наград. Пока показываем демо-тиры; на этапе бэкенда
     // заменим demoTiers на реальные данные из profile.
+        // сколько наград показывать свёрнуто
+    const AWARDS_PREVIEW = 6;
+    let awardsExpanded = false;
+
     function renderAwardsGrid(profile) {
       const box = document.getElementById('awards-list');
       if (typeof AWARD_DEFS === 'undefined' || typeof renderAwardBadge !== 'function') {
@@ -1774,13 +1800,38 @@ function getLevel(score) {
         march_2025:'Вручено лично',
         owner_friend:'Вручено лично'
       };
-      // счётчик наград = сколько бейджей открыто (tier > 0)
-      const earned = AWARD_DEFS.filter(d => (demoTiers[d.id] || 0) > 0).length;
-      document.getElementById('awards-count').textContent = earned;
 
-      box.innerHTML = '<div class="aw-grid">' +
-        AWARD_DEFS.map(d => renderAwardBadge(d, demoTiers[d.id] || 0, demoSubs[d.id] || '')).join('') +
+      // 🏅 только полученные награды (tier > 0) — их и показываем
+      const earnedDefs = AWARD_DEFS.filter(d => (demoTiers[d.id] || 0) > 0);
+      document.getElementById('awards-count').textContent = earnedDefs.length;
+
+      if (!earnedDefs.length) {
+        box.innerHTML = '<div class="empty" style="padding:20px 0;font-size:12px;">Награды появятся здесь</div>';
+        return;
+      }
+
+      // свёрнуто показываем только первые AWARDS_PREVIEW
+      const shown = awardsExpanded ? earnedDefs : earnedDefs.slice(0, AWARDS_PREVIEW);
+      const hiddenCount = earnedDefs.length - shown.length;
+
+      let html = '<div class="aw-grid">' +
+        shown.map(d => renderAwardBadge(d, demoTiers[d.id] || 0, demoSubs[d.id] || '')).join('') +
       '</div>';
+
+      // кнопка "Показать все / Свернуть"
+      if (earnedDefs.length > AWARDS_PREVIEW) {
+        html += '<div class="aw-toggle" onclick="toggleAwards()">' +
+          (awardsExpanded ? 'Свернуть ↑' : 'Показать все (' + earnedDefs.length + ') ↓') +
+        '</div>';
+      }
+
+      box.innerHTML = html;
+    }
+
+    function toggleAwards() {
+      tg.HapticFeedback?.impactOccurred('light');
+      awardsExpanded = !awardsExpanded;
+      renderAwardsGrid(window.PROFILE);
     }
 
     function openAwardModal(id, tier) {
@@ -1968,6 +2019,7 @@ function closeAwardModal() {
       document.getElementById('m-tasks').textContent = '0';
       document.getElementById('m-awards-count').textContent = '0';
       document.getElementById('m-awards').innerHTML = '';
+      document.getElementById('m-awards-head').style.display = 'none';
       document.getElementById('react-box').innerHTML = ''; // 🫶 чистим реакции
       document.getElementById('owner-panel').innerHTML = ''; // чистим панель OWNER
       document.querySelector('#profile-modal .m-avatar').innerHTML = '👤';
@@ -1997,22 +2049,28 @@ function closeAwardModal() {
         document.getElementById('m-tasks').textContent = p.tasks;
         const aw = p.awards_list || [];
         document.getElementById('m-awards-count').textContent = aw.length;
-        document.getElementById('m-awards').innerHTML = aw.length
-          ? '<div class="aw-grid">' + aw.map(a => {
-              const def = awardById(a.id);
-              if (!def) return '';
-              const tier = a.tier || 1;
-              // дата (только у ручных наград — у авто её нет)
-              let sub = '';
-              if (a.date) {
-                sub = new Date(a.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
-              }
-              return renderAwardBadge(def, tier, sub);
-            }).filter(Boolean).join('') + '</div>'
-          : '<div class="empty" style="padding:16px 0;font-size:12px;">Наград пока нет</div>';
-        // скролл больше не нужен — сетка сама переносит; убираем класс
-        document.getElementById('m-awards').classList.remove('scrollable');
-
+        const mAwardsEl = document.getElementById('m-awards');
+        const mAwardsHead = document.getElementById('m-awards-head');
+        if (aw.length) {
+          mAwardsHead.style.display = 'block';
+          mAwardsEl.classList.remove('empty-awards');
+          mAwardsEl.innerHTML = '<div class="aw-grid">' + aw.map(a => {
+            const def = awardById(a.id);
+            if (!def) return '';
+            const tier = a.tier || 1;
+            let sub = '';
+            if (a.date) {
+              sub = new Date(a.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+            return renderAwardBadge(def, tier, sub);
+          }).filter(Boolean).join('') + '</div>';
+        } else {
+          mAwardsHead.style.display = 'none';
+          mAwardsEl.classList.add('empty-awards');
+          mAwardsEl.innerHTML = '<div class="empty" style="padding:16px 0;font-size:12px;">Наград пока нет</div>';
+        }
+        mAwardsEl.classList.remove('scrollable');
+        
         // 🫶 рисуем кнопки реакций
         renderReactions(p.reactions || {}, p.my_reactions || []);
 
