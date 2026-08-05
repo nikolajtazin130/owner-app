@@ -75,7 +75,7 @@ const AWARD_DEFS = [
   { id:"initiator", type:"manual", title:"Инициатор", icon:AW_ICONS.init,
     desc:"Запускает движение первым. Не ждёт, когда начнут другие." },
 
-  { id:"owner_friend", type:"manual", title:"Друг OWNER", icon:AW_ICONS.friend,
+  { id:"owner_friend", type:"manual", noTiers:true, title:"Друг OWNER", icon:AW_ICONS.friend,
     desc:"Тот, кому OWNER доверяет лично." },
 
   { id:"role_model", type:"manual", title:"Личный пример", icon:AW_ICONS.model,
