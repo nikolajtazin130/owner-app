@@ -307,6 +307,13 @@
       border-radius:12px; cursor:pointer; transition:transform .1s;
     }
     .aw-toggle:active { transform:scale(0.97); }
+      <!-- 🎖 Модалка уровней -->
+  <div id="levelModalOverlay" class="modal-overlay" onclick="if(event.target===this)closeLevelModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <span class="close-x" onclick="closeLevelModal()">✕</span>
+      <div class="modal-body" id="levelModalBody"></div>
+    </div>
+  </div>
   </style>
 </head>
 <body>
@@ -375,7 +382,7 @@
         <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
         <div class="stat-box"><div class="val" id="awards-count">0</div><div class="lbl">Наград</div></div>
       </div>
-       <div class="level-wrap" id="p-level-wrap">
+        <div class="level-wrap" id="p-level-wrap" onclick="openLevelModal()" style="cursor:pointer;">
         <div class="lv-top">
           <span class="lv-name" id="p-level-name">Присутствующий</span>
           <span class="lv-num" id="p-level-num">Ур. 1</span>
@@ -1996,6 +2003,56 @@ function closeAwardModal() {
           showScreen('app');
         } else { showScreen('locked'); }
       } catch (e) { showScreen('locked'); }
+    }
+
+        // 🎖 === МОДАЛКА УРОВНЕЙ ===
+    function openLevelModal() {
+      tg.HapticFeedback?.impactOccurred('light');
+      const score = Number(window.PROFILE?.score) || 0;
+      const lv = getLevel(score);
+
+      const rows = LEVELS.map(l => {
+        const isCurrent = l.lvl === lv.current.lvl;
+        const isDone = score >= l.min && !isCurrent;
+        const isLocked = score < l.min;
+
+        let mark, markColor;
+        if (isCurrent)   { mark = '●'; markColor = 'var(--accent)'; }
+        else if (isDone) { mark = '✓'; markColor = 'var(--accent)'; }
+        else             { mark = lockSvg(14); markColor = 'var(--hint)'; }
+
+        const border = isCurrent ? 'border:1px solid var(--accent);' : 'border:1px solid rgba(255,255,255,0.06);';
+        const bg = isCurrent ? 'background:rgba(200,168,107,0.10);' : 'background:var(--bg);';
+        const nameColor = isLocked ? 'var(--hint)' : 'var(--text)';
+
+        return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;margin-bottom:8px;' + border + bg + '">' +
+                 '<span style="min-width:22px;text-align:center;color:' + markColor + ';font-weight:700;display:flex;align-items:center;justify-content:center;">' + mark + '</span>' +
+                 '<div style="flex:1;text-align:left;">' +
+                   '<div style="font-size:14px;font-weight:600;color:' + nameColor + ';">' + l.title + '</div>' +
+                   '<div style="font-size:11px;color:var(--hint);margin-top:2px;">Уровень ' + l.lvl + ' · от ' + l.min + ' баллов</div>' +
+                 '</div>' +
+                 (isCurrent ? '<span style="font-size:11px;color:var(--accent);font-weight:700;white-space:nowrap;">ты здесь</span>' : '') +
+               '</div>';
+      }).join('');
+
+      const progressHtml = lv.next
+        ? '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:14px 16px;margin-bottom:18px;text-align:left;">' +
+            '<div style="font-size:13px;color:var(--text);margin-bottom:8px;">До уровня «' + lv.next.title + '» — ещё <b style="color:var(--accent);">' + lv.need + '</b> баллов</div>' +
+            '<div class="level-bar"><div class="level-bar-fill" style="width:' + lv.progress + '%"></div></div>' +
+          '</div>'
+        : '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:14px 16px;margin-bottom:18px;text-align:center;font-size:13px;color:var(--accent);">Максимальный уровень достигнут 👑</div>';
+
+      document.getElementById('levelModalBody').innerHTML =
+        '<h3 style="text-align:center;margin:0 0 4px;">Уровни</h3>' +
+        '<div style="text-align:center;font-size:13px;color:var(--hint);margin-bottom:18px;">Сейчас: <b style="color:var(--accent);">' + lv.current.title + '</b> · ' + score + ' баллов</div>' +
+        progressHtml +
+        rows;
+
+      document.getElementById('levelModalOverlay').classList.add('show');
+    }
+
+    function closeLevelModal() {
+      document.getElementById('levelModalOverlay').classList.remove('show');
     }
 
         // === РЕЙТИНГ ===
