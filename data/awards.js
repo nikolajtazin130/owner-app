@@ -78,7 +78,7 @@ const AWARD_DEFS = [
   { id:"owner_friend", type:"manual", noTiers:true, title:"Друг OWNER", icon:AW_ICONS.friend,
     desc:"Тот, кому OWNER доверяет лично." },
 
-  { id:"role_model", type:"manual", title:"Личный пример", icon:AW_ICONS.model,
+  { id:"role_model", type:"manual", noTiers:true, title:"Личный пример", icon:AW_ICONS.model,
     desc:"Своими действиями задаёт планку для остальных." },
 
   { id:"circle_support", type:"manual", title:"Опора круга", icon:AW_ICONS.anchor,
@@ -96,7 +96,7 @@ const AWARD_DEFS = [
   { id:"mentor", type:"manual", title:"Наставник", icon:AW_ICONS.mentor,
     desc:"Помогает новичкам освоиться и не бросает их одних." },
 
-  { id:"honest_self", type:"manual", title:"Честный с собой", icon:AW_ICONS.honest,
+  { id:"honest_self", type:"manual", noTiers:true, title:"Честный с собой", icon:AW_ICONS.honest,
     desc:"Не прячется за удобными ответами. Смотрит на себя прямо." },
 
   // ── РУЧНЫЕ БЕЗ СТУПЕНЕЙ ──
