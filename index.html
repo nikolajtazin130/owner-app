@@ -366,8 +366,12 @@
         <div class="profile-status">Участник клуба OWNER</div>
         <div class="level-badge" id="p-level-badge">— уровень</div>
       </div>
-            <div class="stat-grid">
-        <div class="stat-box"><div class="val" id="score-count">0</div><div class="lbl">Баллов</div></div>
+        <div class="stat-grid">
+        <div class="stat-box" onclick="openScoreBreakdown()" style="cursor:pointer;position:relative;">
+          <div class="val" id="score-count">0</div>
+          <div class="lbl">Баллов</div>
+          <div style="position:absolute;top:8px;right:10px;font-size:11px;color:var(--accent);opacity:0.7;">ⓘ</div>
+        </div>
         <div class="stat-box"><div class="val" id="days-count">—</div><div class="lbl">Дней с нами</div></div>
         <div class="stat-box"><div class="val" id="awards-count">0</div><div class="lbl">Наград</div></div>
       </div>
@@ -490,6 +494,22 @@
       <div class="modal-body" id="awModalBody"></div>
     </div>
   </div>
+
+      <!-- 💰 Модалка "Откуда баллы" -->
+  <div id="scoreModalOverlay" class="modal-overlay" onclick="if(event.target===this)closeScoreBreakdown()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <span class="close-x" onclick="closeScoreBreakdown()">✕</span>
+      <div class="modal-body">
+        <h3 style="text-align:center;margin:0 0 4px;">Откуда баллы</h3>
+        <div style="font-size:13px;color:var(--hint);text-align:center;margin-bottom:18px;line-height:1.5;">
+          Всё заработано. Вот из чего складывается твой счёт.
+        </div>
+        <div id="score-breakdown-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
 
   <div id="toast" class="toast"></div>
 
@@ -1740,6 +1760,60 @@ function getLevel(score) {
     function fillProfile() {
       if (user?.first_name) document.getElementById('p-name').textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
       if (user?.photo_url) document.getElementById('avatar').innerHTML = '<img src="' + user.photo_url + '" alt="">';
+    }
+
+        // 💰 === РАЗБИВКА БАЛЛОВ ===
+    const SCORE_ROWS = [
+      { key: 'days',      label: 'Дни в клубе',       hint: (b) => b.days + ' дн. × 1' },
+      { key: 'survey',    label: 'Опросы',            hint: (b) => (b.survey/2) + ' × 2' },
+      { key: 'marathon',  label: 'Марафоны',          hint: (b) => (b.marathon/5) + ' × 5' },
+      { key: 'reactions', label: 'Реакции',           hint: (b) => (b.reactions_count||0) + ' × 2' },
+      { key: 'comments',  label: 'Комментарии',       hint: (b) => (b.comments) + ' × 1' },
+      { key: 'awards',    label: 'Награды',            hint: (b) => (b.awards_count||0) + ' × 5' },
+      { key: 'manual',    label: 'Бонусы от клуба',   hint: () => 'начислено вручную' },
+    ];
+
+    function openScoreBreakdown() {
+      tg.HapticFeedback?.impactOccurred('light');
+      const b = (window.PROFILE && window.PROFILE.score_breakdown) || null;
+      const body = document.getElementById('score-breakdown-body');
+
+      if (!b) {
+        body.innerHTML = '<div class="empty" style="padding:20px 0;font-size:13px;">Данные обновляются, зайди чуть позже.</div>';
+        document.getElementById('scoreModalOverlay').classList.add('show');
+        return;
+      }
+
+      let rowsHtml = '';
+      SCORE_ROWS.forEach(r => {
+        const val = b[r.key] || 0;
+        if (val <= 0) return; // не показываем пустые строки
+        rowsHtml +=
+          '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">' +
+            '<div style="text-align:left;">' +
+              '<div style="font-size:14px;color:var(--text);font-weight:600;">' + r.label + '</div>' +
+              '<div style="font-size:11px;color:var(--hint);margin-top:2px;">' + r.hint(b) + '</div>' +
+            '</div>' +
+            '<div style="font-size:16px;font-weight:700;color:var(--accent);white-space:nowrap;">+' + val + '</div>' +
+          '</div>';
+      });
+
+      if (!rowsHtml) {
+        rowsHtml = '<div class="empty" style="padding:20px 0;font-size:13px;">Баллов пока нет. Действуй — они появятся 💪</div>';
+      }
+
+      body.innerHTML =
+        rowsHtml +
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0 4px;margin-top:6px;">' +
+          '<div style="font-size:16px;font-weight:700;color:var(--text);">Итого</div>' +
+          '<div style="font-size:22px;font-weight:800;color:var(--accent);">' + (b.total || 0) + '</div>' +
+        '</div>';
+
+      document.getElementById('scoreModalOverlay').classList.add('show');
+    }
+
+    function closeScoreBreakdown() {
+      document.getElementById('scoreModalOverlay').classList.remove('show');
     }
 
         function renderProfileStats(profile) {
