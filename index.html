@@ -307,13 +307,6 @@
       border-radius:12px; cursor:pointer; transition:transform .1s;
     }
     .aw-toggle:active { transform:scale(0.97); }
-      <!-- 🎖 Модалка уровней -->
-  <div id="levelModalOverlay" class="modal-overlay" onclick="if(event.target===this)closeLevelModal()">
-    <div class="modal-card" onclick="event.stopPropagation()">
-      <span class="close-x" onclick="closeLevelModal()">✕</span>
-      <div class="modal-body" id="levelModalBody"></div>
-    </div>
-  </div>
   </style>
 </head>
 <body>
@@ -516,7 +509,13 @@
     </div>
   </div>
 
-  <div id="toast" class="toast"></div>
+      <!-- 🎖 Модалка уровней -->
+  <div id="levelModalOverlay" class="modal-overlay" onclick="if(event.target===this)closeLevelModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <span class="close-x" onclick="closeLevelModal()">✕</span>
+      <div class="modal-body" id="levelModalBody"></div>
+    </div>
+  </div>
 
   <div id="toast" class="toast"></div>
 
