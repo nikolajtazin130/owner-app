@@ -71,9 +71,9 @@ const AWARD_DEFS = [
     desc:"За развёрнутые комментарии в чате клуба. Пиши по делу — система засчитает вклад.",
     tierLabels:["5 комментариев","20 комментариев","50 комментариев","100 комментариев"] },
 
-  // ── РУЧНЫЕ (со ступенями) ──
-  { id:"initiator", type:"manual", title:"Инициатор", icon:AW_ICONS.init,
-    desc:"Запускает движение первым. Не ждёт, когда начнут другие." },
+  // ── РУЧНЫЕ (теперь все без ступеней) ──
+  { id:"initiator", type:"manual", noTiers:true, title:"Инициатор", icon:AW_ICONS.init,
+    desc:"Запускает движение первым. Не ждёт, когда начнут другие. Вручается за смелость сделать первый шаг там, где остальные медлят." },
 
   { id:"owner_friend", type:"manual", noTiers:true, title:"Друг OWNER", icon:AW_ICONS.friend,
     desc:"Тот, кому OWNER доверяет лично." },
@@ -81,20 +81,20 @@ const AWARD_DEFS = [
   { id:"role_model", type:"manual", noTiers:true, title:"Личный пример", icon:AW_ICONS.model,
     desc:"Своими действиями задаёт планку для остальных." },
 
-  { id:"circle_support", type:"manual", title:"Опора круга", icon:AW_ICONS.anchor,
-    desc:"Регулярно поддерживает качество и устойчивость сообщества." },
+  { id:"circle_support", type:"manual", noTiers:true, title:"Опора круга", icon:AW_ICONS.anchor,
+    desc:"Регулярно поддерживает качество и устойчивость сообщества. На таких держится атмосфера клуба." },
 
-  { id:"precise", type:"manual", title:"Точный собеседник", icon:AW_ICONS.target,
-    desc:"Даёт обратную связь, которая проясняет ситуацию, а не просто поддерживает." },
+  { id:"precise", type:"manual", noTiers:true, title:"Точный собеседник", icon:AW_ICONS.target,
+    desc:"Даёт обратную связь, которая проясняет ситуацию, а не просто поддерживает. Говорит по делу и в точку." },
 
-  { id:"stays_online", type:"manual", title:"На связи", icon:AW_ICONS.online,
-    desc:"Регулярно присутствует в жизни сообщества и не исчезает после первой активности." },
+  { id:"stays_online", type:"manual", noTiers:true, title:"На связи", icon:AW_ICONS.online,
+    desc:"Регулярно присутствует в жизни сообщества и не исчезает после первой активности. Его видно и на него можно рассчитывать." },
 
-  { id:"adds_context", type:"manual", title:"Добавляет контекст", icon:AW_ICONS.context,
-    desc:"Приносит факт или опыт, которого не хватало для полного разбора." },
+  { id:"adds_context", type:"manual", noTiers:true, title:"Добавляет контекст", icon:AW_ICONS.context,
+    desc:"Приносит факт или опыт, которого не хватало для полного разбора. Расширяет картину для всех." },
 
-  { id:"mentor", type:"manual", title:"Наставник", icon:AW_ICONS.mentor,
-    desc:"Помогает новичкам освоиться и не бросает их одних." },
+  { id:"mentor", type:"manual", noTiers:true, title:"Наставник", icon:AW_ICONS.mentor,
+    desc:"Помогает новичкам освоиться и не бросает их одних. Вкладывается в тех, кто только пришёл." },
 
   { id:"honest_self", type:"manual", noTiers:true, title:"Честный с собой", icon:AW_ICONS.honest,
     desc:"Не прячется за удобными ответами. Смотрит на себя прямо." },
