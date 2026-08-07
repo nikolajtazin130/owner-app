@@ -1886,6 +1886,15 @@ function getLevel(score) {
       if (profile.score !== undefined) {
         document.getElementById('score-count').textContent = profile.score;
       }
+          
+                // 📅 дни с нами
+      const daysEl = document.getElementById('days-count');
+      if (daysEl) {
+        const d = (profile.score_breakdown && profile.score_breakdown.days != null)
+          ? profile.score_breakdown.days
+          : (profile.active_days != null ? profile.active_days : 0);
+        daysEl.textContent = d;
+      }
 
       // 🎖 уровень
       const lv = getLevel(profile.score);
