@@ -187,6 +187,7 @@
     .react-btn.active { border-color:var(--accent); background:rgba(200,168,107,0.12); }
     #react-left { text-align:center; font-size:11px; color:var(--hint); margin-top:8px; }
     #react-left b { color:var(--accent); }
+    .react-btn .r-hint { font-size:9px; color:var(--hint); opacity:0.75; line-height:1.2; text-align:center; }
     /* === МАРАФОН === */
     .mar-hero { background:linear-gradient(135deg, rgba(200,168,107,0.15), rgba(200,168,107,0.03)); border:1px solid var(--accent); border-radius:20px; padding:22px; margin-bottom:16px; text-align:center; }
     .mar-hero .m-day { font-size:38px; font-weight:800; color:var(--accent); line-height:1; }
@@ -493,7 +494,10 @@
         <div style="text-align:center;font-size:12px;color:var(--hint);margin:2px 0 8px;">
           Заданий выполнено: <span id="m-tasks" style="color:var(--accent);font-weight:600;">0</span>
         </div>
-                <div class="react-row" id="react-box"></div>
+                <div style="font-size:11px;color:var(--hint);text-align:center;margin:14px 0 -6px;line-height:1.4;">
+          Оцени участника
+        </div>
+        <div class="react-row" id="react-box"></div>
         <div class="m-awards-head" id="m-awards-head" style="display:none;">Награды</div>
         <div class="m-awards" id="m-awards"></div>
         <div id="owner-panel"></div>
@@ -1832,7 +1836,7 @@ function getLevel(score) {
       { key: 'survey',    label: 'Опросы',       hint: (b) => (b.survey/5) + ' × 5' },
       { key: 'marathon',  label: 'Марафоны',     hint: (b) => (b.marathon/20) + ' × 20' },
       { key: 'reactions', label: 'Реакции',           hint: (b) => (b.reactions_count||0) + ' × 2' },
-      { key: 'comments',  label: 'Комментарии',       hint: (b) => (b.comments) + ' × 1' },
+      { key: 'comments', label: 'Комментарии', hint: (b) => (b.comments/3) + ' × 3' },
       { key: 'awards', label: 'Награды', hint: (b) => (b.awards_count||0) + ' шт. (по тирам)' },
       { key: 'manual',    label: 'Бонусы от клуба',   hint: () => 'начислено вручную' },
     ];
@@ -2305,10 +2309,11 @@ const REACTION_META = {
     return `<div class="react-btn ${active}" data-key="${key}" onclick="toggleReaction('${key}')">
               <div class="r-icon">${meta.icon}</div>
               <div class="r-label">${meta.label}</div>
+              <div class="r-hint">${meta.hint}</div>
               <div class="r-count">${cnt}</div>
             </div>`;
-  }).join('');
-}
+          }).join('');
+        }
 
     function updateReactionsLeft(left) {
   let el = document.getElementById('react-left');
