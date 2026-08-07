@@ -2019,35 +2019,33 @@ function closeAwardModal() {
 }
 
     async function checkAccess() {
-  // покажем диагностику прямо на экране loading
-  const dbg = document.querySelector('#loading p');
-
-  if (!user?.id) {
-    if (dbg) dbg.textContent = 'ДИАГ: нет user.id (открыто не через бота?)';
-    // НЕ прячем loading, чтобы ты увидел текст
-    return;
-  }
-
-  if (dbg) dbg.textContent = 'ДИАГ: initData length = ' + (tg.initData ? tg.initData.length : 'ПУСТО');
-
+  if (!user?.id) { showScreen('locked'); return; }
   try {
-    const res = await api(WORKER_URL + "?user_id=" + user.id);
+    const res = await api(WORKER_URL + "?action=status&user_id=" + user.id);
     const data = await res.json();
 
-    // показываем ответ воркера прямо на экране и НЕ уходим дальше
-    if (dbg) dbg.textContent =
-      'initData len: ' + (tg.initData ? tg.initData.length : 'ПУСТО') +
-      ' | ОТВЕТ: ' + JSON.stringify(data).slice(0, 200);
-
-    return;  // ⛔ ВРЕМЕННО останавливаемся здесь, чтобы прочитать текст
-
-    // --- дальше старый код (пока не выполнится) ---
+    if (data.ok && data.subscribed) {
+      window.PROFILE = data.profile;
+      fillProfile();
+      renderProfileStats(data.profile);
+      if (Array.isArray(data.profile.read_posts)) READ_POSTS = data.profile.read_posts.map(String);
+      if (String(user.id) === String(OWNER_ID)) {
+        const ae = document.getElementById('admin-entry');
+        if (ae) ae.style.display = 'block';
+      }
+      const seasons = await loadSeasons();
+      renderSeasons(seasons);
+      showScreen('app');
+      switchTab('seasons');
+    } else {
+      showScreen('locked');
+    }
   } catch (e) {
-    if (dbg) dbg.textContent = 'ДИАГ: ошибка сети — ' + String(e).slice(0,150);
+    showScreen('locked');
   }
 }
 
-        // 🎖 === МОДАЛКА УРОВНЕЙ ===
+    // 🎖 === МОДАЛКА УРОВНЕЙ ===
     function openLevelModal() {
       tg.HapticFeedback?.impactOccurred('light');
       const score = Number(window.PROFILE?.score) || 0;
