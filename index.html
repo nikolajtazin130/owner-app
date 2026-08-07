@@ -650,7 +650,7 @@ function getLevel(score) {
       document.querySelector('.tab[data-tab="'+name+'"]').classList.add('active');
       window.scrollTo(0, 0);
       if (name === 'polls' && !pollsCache) loadPolls();
-      if (name === 'rating') loadRating();
+      if (name === 'polls') loadMarathons();
       if (name === 'rating') loadRating();
     }
 
