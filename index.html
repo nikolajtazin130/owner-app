@@ -1822,7 +1822,7 @@ function getLevel(score) {
       { key: 'marathon',  label: 'Марафоны',          hint: (b) => (b.marathon/5) + ' × 5' },
       { key: 'reactions', label: 'Реакции',           hint: (b) => (b.reactions_count||0) + ' × 2' },
       { key: 'comments',  label: 'Комментарии',       hint: (b) => (b.comments) + ' × 1' },
-      { key: 'awards',    label: 'Награды',            hint: (b) => (b.awards_count||0) + ' × 5' },
+      { key: 'awards', label: 'Награды', hint: (b) => (b.awards_count||0) + ' шт. (по тирам)' },
       { key: 'manual',    label: 'Бонусы от клуба',   hint: () => 'начислено вручную' },
     ];
 
