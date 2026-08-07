@@ -327,16 +327,13 @@
     { "id": "forming", "icon": "git-compare", "title": "Контур модели", "text": "Твой профиль не сводится ни к общему закрытию, ни к одному доминирующему узлу: часть функций уже работает устойчиво, часть требует доработки. Основной результат здесь определяется самой слабой осью и разрывом между ней и остальным профилем — именно она задаёт высоту всей конструкции. Главная ошибка сейчас — вскрывать все узлы разом или ждать, пока «само прояснится». Возьми одну ось — самую слабую или самую близкую — и доведи именно её до опоры за ближайшие недели." }
   ],
   "archetypeRules": [
-    { "id": "working",   "test": "Math.min(p.origin,p.evidence,p.scope,p.testability,p.updating,p.identity,p.authority)>=65" },
-    { "id": "selective", "test": "Math.max(p.origin,p.evidence,p.scope,p.testability,p.updating,p.identity,p.authority)>=70 && (Math.max(p.origin,p.evidence,p.scope,p.testability,p.updating,p.identity,p.authority)-Math.min(p.origin,p.evidence,p.scope,p.testability,p.updating,p.identity,p.authority))>=35" },
-    { "id": "clouded",   "test": "Math.max(p.origin,p.evidence,p.scope,p.testability,p.updating,p.identity,p.authority)<45" },
-    { "id": "inheritor", "test": "!strongTied && weak==='origin' && p.origin<=58" },
-    { "id": "feeler",    "test": "!strongTied && weak==='evidence' && p.evidence<=58" },
-    { "id": "overreach", "test": "!strongTied && weak==='scope' && p.scope<=58" },
-    { "id": "closed",    "test": "!strongTied && weak==='testability' && p.testability<=58" },
-    { "id": "defender",  "test": "!strongTied && weak==='updating' && p.updating<=58" },
-    { "id": "fused",     "test": "!strongTied && weak==='identity' && p.identity<=58" },
-    { "id": "sentenced", "test": "!strongTied && weak==='authority' && p.authority<=58" },
+    { "id": "inheritor", "test": "!strongTied && weak==='origin' && p.origin<=64" },
+    { "id": "feeler",    "test": "!strongTied && weak==='evidence' && p.evidence<=64" },
+    { "id": "overreach", "test": "!strongTied && weak==='scope' && p.scope<=64" },
+    { "id": "closed",    "test": "!strongTied && weak==='testability' && p.testability<=64" },
+    { "id": "defender",  "test": "!strongTied && weak==='updating' && p.updating<=64" },
+    { "id": "fused",     "test": "!strongTied && weak==='identity' && p.identity<=64" },
+    { "id": "sentenced", "test": "!strongTied && weak==='authority' && p.authority<=64" },
     { "id": "forming",   "test": "true" }
   ],
     "verdicts": {
