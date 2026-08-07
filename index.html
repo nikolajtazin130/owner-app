@@ -528,6 +528,16 @@
     const tg = window.Telegram.WebApp;
     tg.ready(); tg.expand();
 
+    const INIT_DATA = tg.initData || ""; 
+
+    // единая обёртка: сама подставляет initData в заголовок
+    function api(url, options = {}) {
+      options.headers = Object.assign({}, options.headers, {
+        "X-Init-Data": INIT_DATA
+      });
+      return fetch(url, options);
+    }
+
     const WORKER_URL   = "https://subscription-check.nikolajtazin130.workers.dev/";
     const OWNER_ID     = "595505108"; // 👑 твой ID
     const PAYMENT_BOT  = "https://t.me/TriumphOwnerBot";
@@ -600,7 +610,7 @@ function getLevel(score) {
       if (currentSeasonLessons.length) renderLessons(currentSeasonLessons);
 
       try {
-        const res = await fetch(WORKER_URL + "?action=toggle_read&user_id=" + user.id, {
+        const res = await api(WORKER_URL + "?action=toggle_read&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ post_id: postId })
@@ -1129,7 +1139,7 @@ function getLevel(score) {
       // 🔒 спрашиваем сервер: можно ли проходить сейчас?
       let status = null;
       try {
-        const res = await fetch(WORKER_URL + "?action=survey_status&user_id=" + user.id + "&survey_id=" + s.id);
+        const res = await api(WORKER_URL + "?action=survey_status&user_id=" + user.id + "&survey_id=" + s.id);
         status = await res.json();
       } catch (e) { status = null; }
 
@@ -1480,7 +1490,7 @@ function getLevel(score) {
 
       // === сохраняем на сервер (расширенный scores, совместимый со старой историей) ===
       if (user?.id && currentSurvey?.id) {
-        fetch(WORKER_URL + "?action=save_result&user_id=" + user.id, {
+        api(WORKER_URL + "?action=save_result&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2011,7 +2021,7 @@ function closeAwardModal() {
     async function checkAccess() {
       if (!user?.id) { showScreen('locked'); return; }
       try {
-        const res = await fetch(WORKER_URL + "?user_id=" + user.id);
+        const res = await api(WORKER_URL + "?user_id=" + user.id);
         const data = await res.json();
         if (data.ok && data.subscribed) {
           const seasons = await loadSeasons();
@@ -2096,7 +2106,7 @@ function closeAwardModal() {
       const listBox = document.getElementById('rating-list');
       listBox.innerHTML = '<div class="empty">Загрузка…</div>';
       try {
-        const res = await fetch(WORKER_URL + "?action=get_leaderboard&user_id=" + user.id);
+        const res = await api(WORKER_URL + "?action=get_leaderboard&user_id=" + user.id);
         const data = await res.json();
         if (!data.ok) { listBox.innerHTML = '<div class="empty">Не удалось загрузить рейтинг.</div>'; return; }
 
@@ -2145,7 +2155,7 @@ function closeAwardModal() {
       const val = toggle.checked;
       tg.HapticFeedback?.impactOccurred('light');
       try {
-        await fetch(WORKER_URL + "?action=toggle_public&user_id=" + user.id, {
+        await api(WORKER_URL + "?action=toggle_public&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ public: val })
@@ -2179,7 +2189,7 @@ function closeAwardModal() {
       document.querySelector('#profile-modal .m-avatar').innerHTML = '👤';
       modal.classList.add('show');
       try {
-        const res = await fetch(WORKER_URL + "?action=get_public_profile&user_id=" + user.id + "&target_id=" + targetId);
+        const res = await api(WORKER_URL + "?action=get_public_profile&user_id=" + user.id + "&target_id=" + targetId);
         const data = await res.json();
         if (!data.ok) {
           document.getElementById('m-name').textContent = 'Профиль скрыт 🔒';
@@ -2263,7 +2273,7 @@ function closeAwardModal() {
       if (!currentTargetId) return;
       tg.HapticFeedback?.impactOccurred('light');
       try {
-        const res = await fetch(WORKER_URL + "?action=toggle_reaction&user_id=" + user.id, {
+        const res = await api(WORKER_URL + "?action=toggle_reaction&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ target_id: currentTargetId, emoji: emoji })
@@ -2362,7 +2372,7 @@ function closeAwardModal() {
       if (!currentTargetId) return;
       tg.HapticFeedback?.impactOccurred('medium');
       try {
-        const res = await fetch(WORKER_URL + "?action=admin_freeze&user_id=" + user.id, {
+        const res = await api(WORKER_URL + "?action=admin_freeze&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ target_id: currentTargetId, freeze: freeze })
@@ -2388,7 +2398,7 @@ function closeAwardModal() {
       const tier = info?.noTiers ? 1 : parseInt(document.getElementById('award-tier-select').value) || 1;
       tg.HapticFeedback?.impactOccurred('medium');
       try {
-        const res = await fetch(WORKER_URL + "?action=give_award&user_id=" + user.id, {
+        const res = await api(WORKER_URL + "?action=give_award&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ target_id: currentTargetId, award_id: awardId, tier: tier })
@@ -2418,7 +2428,7 @@ function closeAwardModal() {
 
     async function doTakeAward(awardId, info) {
       try {
-        const res = await fetch(WORKER_URL + "?action=take_award&user_id=" + user.id, {
+        const res = await api(WORKER_URL + "?action=take_award&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ target_id: currentTargetId, award_id: awardId })
@@ -2447,7 +2457,7 @@ function closeAwardModal() {
       tg.HapticFeedback?.impactOccurred('medium');
       
       try {
-        const res = await fetch(WORKER_URL + "?action=edit_stat&user_id=" + user.id, {
+        const res = await api(WORKER_URL + "?action=edit_stat&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
@@ -2530,7 +2540,7 @@ function closeAwardModal() {
         const metaRes = await fetch(DATA_PATH + "marathon_" + mId + ".json?v=" + Date.now());
         marathonMeta = await metaRes.json();
         document.getElementById('mar-title').textContent = marathonMeta.title;
-        const stRes = await fetch(WORKER_URL + "?action=marathon_status&user_id=" + user.id + "&marathon_id=" + mId);
+        const stRes = await api(WORKER_URL + "?action=marathon_status&user_id=" + user.id + "&marathon_id=" + mId);
         const st = await stRes.json();
         if (!st.ok) { document.getElementById('mar-body').innerHTML = '<div class="empty">Ошибка загрузки.</div>'; return; }
         renderMarathon(st);
@@ -2659,7 +2669,7 @@ function closeAwardModal() {
       try {
       const TURBO_TEST = false; // 🧪 ТЕСТ! Перед запуском поставить false
         const turboParam = TURBO_TEST ? "&turbo=1" : "";
-        const res = await fetch(WORKER_URL + "?action=marathon_mark&user_id=" + user.id + turboParam, {
+        const res = await api(WORKER_URL + "?action=marathon_mark&user_id=" + user.id + turboParam, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ marathon_id: currentMarathon, answers: marathonAnswers })
@@ -2879,7 +2889,7 @@ function closeAwardModal() {
 
     async function refreshProfileSilently() {
       try {
-        const res = await fetch(WORKER_URL + "?user_id=" + user.id);
+        const res = await api(WORKER_URL + "?user_id=" + user.id);
         const data = await res.json();
         if (data.ok && data.profile) { window.PROFILE = data.profile; renderProfileStats(data.profile); }
       } catch (e) {}
@@ -2919,7 +2929,7 @@ function closeAwardModal() {
       const listBox = document.getElementById('admin-list');
       listBox.innerHTML = '<div class="empty">Загрузка…</div>';
       try {
-        const res = await fetch(WORKER_URL + "?action=admin_users&user_id=" + user.id + "&q=" + encodeURIComponent(q));
+        const res = await api(WORKER_URL + "?action=admin_users&user_id=" + user.id + "&q=" + encodeURIComponent(q));
         const data = await res.json();
         if (!data.ok) { listBox.innerHTML = '<div class="empty">Нет доступа.</div>'; return; }
 
