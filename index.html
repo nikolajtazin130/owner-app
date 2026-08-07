@@ -2276,8 +2276,12 @@ function closeAwardModal() {
       }).join('');
     }
 
+    let reactionBusy = false;   // 🔒 флаг: идёт запрос реакции
+
     async function toggleReaction(emoji) {
       if (!currentTargetId) return;
+      if (reactionBusy) return;          // 🔒 уже летит запрос — игнорим двойной тап
+      reactionBusy = true;               // 🔒 закрываем
       tg.HapticFeedback?.impactOccurred('light');
       try {
         const res = await api(WORKER_URL + "?action=toggle_reaction&user_id=" + user.id, {
@@ -2287,7 +2291,6 @@ function closeAwardModal() {
         });
         const data = await res.json();
         if (data.ok) {
-          // обновляем только одну кнопку без перезагрузки профиля
           const btns = document.querySelectorAll('#react-box .react-btn');
           btns.forEach(b => {
             if (b.querySelector('.r-emoji').textContent === emoji) {
@@ -2299,7 +2302,11 @@ function closeAwardModal() {
         } else {
           showToast('Не удалось');
         }
-      } catch (e) { showToast('Ошибка сети'); }
+      } catch (e) {
+        showToast('Ошибка сети');
+      } finally {
+        reactionBusy = false;            // 🔒 открываем в любом случае
+      }
     }
 
     // 👑 Панель OWNER: управление профилем
