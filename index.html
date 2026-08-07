@@ -2583,7 +2583,7 @@ function closeAwardModal() {
       const pct = Math.round((st.active.marked_days / st.active.duration) * 100);
       sub.textContent = '';
       if (st.active.marked_today) {
-        const TURBO_TEST = false; // 🧪 ТЕСТ! перед запуском поставить false
+        const TURBO_TEST = true; // 🧪 ТЕСТ! перед запуском поставить false
         const turboBtn = (TURBO_TEST && String(user.id) === String(OWNER_ID))
           ? '<button class="join-btn" style="width:100%;margin:10px 0;background:#3a1c1c;color:#ff8a8a;" onclick="turboNextDay()">⚡ Прожить следующий день (ТЕСТ)</button>'
           : '';
@@ -2681,7 +2681,7 @@ function closeAwardModal() {
       const btn = document.getElementById('mar-submit');
       if (btn) { btn.style.pointerEvents = 'none'; btn.textContent = 'Сохраняю…'; }
       try {
-      const TURBO_TEST = false; // 🧪 ТЕСТ! Перед запуском поставить false
+      const TURBO_TEST = true; // 🧪 ТЕСТ! Перед запуском поставить false
         const turboParam = TURBO_TEST ? "&turbo=1" : "";
         const res = await api(WORKER_URL + "?action=marathon_mark&user_id=" + user.id + turboParam, {
           method: "POST",
