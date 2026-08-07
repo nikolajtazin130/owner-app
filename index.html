@@ -1509,6 +1509,8 @@ function getLevel(score) {
 
       tg.HapticFeedback?.notificationOccurred?.('success');
       drawRadar('survey-radar', axesMeta, R.axisPct, R.axisAvg, R.weak, R.strong, 5);
+            // 📸 Снимок готового HTML результата (Способ А — заморозка)
+      const snapshotHtml = document.querySelector('#survey-body .result-box')?.innerHTML || '';
 
       // === сохраняем на сервер (расширенный scores, совместимый со старой историей) ===
       if (user?.id && currentSurvey?.id) {
@@ -1531,7 +1533,12 @@ function getLevel(score) {
               strong: R.strong,
               weak: R.weak,
               strongTied: R.strongTied,
-              archetype: R.arch.id
+              archetype: R.arch.id,
+              snapshot: snapshotHtml,  
+              radarAxes: R.axisPct,          
+              radarAvg: R.axisAvg,
+              radarWeak: R.weak,
+              radarStrong: R.strong
             }
           })
         })
@@ -1691,26 +1698,44 @@ function getLevel(score) {
 
         // 📊 Просмотр прошлого результата опроса (радар + оси + архетип)
     window.SURVEY_HISTORY = [];
-    function openPastResult(idx) {
+        function openPastResult(idx) {
       tg.HapticFeedback?.impactOccurred('light');
       const item = window.SURVEY_HISTORY[idx];
       if (!item || !item.scores) return;
       const sc = item.scores;
       const s = currentSurvey;
       const axesMeta = s.axes || [];
-      const axisPct = sc.axes || {};
 
       const d = new Date(item.date);
       const dateStr = d.toLocaleDateString('ru-RU') + ' ' +
                       d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-      // архетип по сохранённому id (если есть)
+      document.getElementById('survey-progress').textContent = 'Результат от ' + dateStr;
+
+      // 📸 Есть замороженный снимок — показываем его один в один
+      if (sc.snapshot) {
+        document.getElementById('survey-body').innerHTML =
+          '<div class="result-box">' + sc.snapshot + '</div>';
+        // радар в снимке пустой (canvas не сохраняется) — перерисовываем из чисел
+        drawRadar('survey-radar', axesMeta,
+          sc.radarAxes || sc.axes || {},
+          sc.radarAvg  || sc.axisAvg || {},
+          sc.radarWeak || sc.weak,
+          sc.radarStrong || sc.strong, 5);
+        // кнопка «Готово» в снимке ведёт на finishSurvey — подменяем на возврат к истории
+        const btn = document.querySelector('#survey-body .join-btn');
+        if (btn) btn.setAttribute('onclick', 'renderSurveyIntro()');
+        if (btn) btn.textContent = '← К истории';
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // ⬇️ FALLBACK для старых записей БЕЗ снимка — пересчёт (как было раньше)
+      const axisPct = sc.axes || {};
       const arch = (s.archetypes || []).find(a => a.id === sc.archetype) || null;
       const icon = arch ? (ARCH_ICONS[arch.icon] || '') : '';
       const title = arch ? arch.title : (sc.result || 'Результат');
       const text = arch ? arch.text : '';
-
-      // полосы по осям
       const bars = axesMeta.map(a => {
         const pct = axisPct[a.key] || 0;
         const vrd = axisVerdict(currentSurvey, a.key, pct, (sc.axisSum || {})[a.key], (sc.axisMin || {})[a.key], (sc.axisWeakSub || {})[a.key]);
@@ -1723,8 +1748,6 @@ function getLevel(score) {
           (vrd ? '<div style="font-size:12px;color:var(--hint);line-height:1.45;margin-top:6px;">' + vrd + '</div>' : '') +
         '</div>';
       }).join('');
-
-      document.getElementById('survey-progress').textContent = 'Результат от ' + dateStr;
       document.getElementById('survey-body').innerHTML =
         '<div class="result-box">' +
           (icon ? '<div style="color:var(--accent);margin-bottom:10px;display:flex;justify-content:center;">' + icon + '</div>' : '') +
@@ -1732,21 +1755,12 @@ function getLevel(score) {
           '<div class="result-score">' + (sc.total ?? 0) + '% ' + (s.scoreLabel || '') + '</div>' +
           '<canvas id="past-radar" width="300" height="300" style="width:100%;max-width:300px;margin:10px auto;display:block;"></canvas>' +
           (text ? '<div class="result-text" style="margin-bottom:20px;">' + text + '</div>' : '') +
-          (function(){
-            const pat = detectPattern(axisPct, currentSurvey);
-            return pat ? '<div class="section-title" style="margin:10px 0;">Твой паттерн</div>' +
-              '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:16px;margin-bottom:8px;text-align:left;">' +
-                '<div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px;">' + pat.title + '</div>' +
-                '<div style="font-size:14px;color:var(--hint);line-height:1.55;">' + pat.text + '</div>' +
-              '</div>' : '';
-          })() +
           renderBlindspots(sc.blindspots, currentSurvey) +
           axisLever(currentSurvey, sc.weak, { axisSum: sc.axisSum || {}, axisMin: sc.axisMin || {}, axisWeakSub: sc.axisWeakSub || {} }) +
           '<div class="section-title" style="margin:10px 0;">Разбор по осям</div>' +
           bars +
           '<button class="join-btn" style="margin-top:24px;width:100%" onclick="renderSurveyIntro()">← К истории</button>' +
         '</div>';
-
       drawRadar('past-radar', axesMeta, axisPct, sc.axisAvg || {}, sc.weak, sc.strong, 5);
       window.scrollTo(0, 0);
     }
