@@ -2019,36 +2019,33 @@ function closeAwardModal() {
 }
 
     async function checkAccess() {
-      if (!user?.id) { showScreen('locked'); return; }
-      try {
-        const res = await api(WORKER_URL + "?user_id=" + user.id);
-        const data = await res.json();
-        showToast('ОТВЕТ: ' + JSON.stringify(data).slice(0,120));  // ← ВРЕМЕННО добавь эту строку
-        if (data.ok && data.subscribed) {
-          const seasons = await loadSeasons();
-          renderSeasons(seasons);
-          fillProfile();
+  // покажем диагностику прямо на экране loading
+  const dbg = document.querySelector('#loading p');
 
-        // 🆕 честные дни: берём active_days с воркера (fallback на first_seen)
-          const daysVal = (typeof data.profile?.active_days === "number")
-            ? data.profile.active_days
-            : (data.profile?.first_seen
-                ? Math.floor((Date.now() - Number(data.profile.first_seen)) / 86400000)
-                : 0);
-          document.getElementById('days-count').textContent = daysVal;
+  if (!user?.id) {
+    if (dbg) dbg.textContent = 'ДИАГ: нет user.id (открыто не через бота?)';
+    // НЕ прячем loading, чтобы ты увидел текст
+    return;
+  }
 
-          READ_POSTS = (data.profile && data.profile.read_posts) || []; // 🆕
-          window.PROFILE = data.profile;
-          renderProfileStats(data.profile);
+  if (dbg) dbg.textContent = 'ДИАГ: initData length = ' + (tg.initData ? tg.initData.length : 'ПУСТО');
 
-                    if (String(user.id) === String(OWNER_ID)) {
-            document.getElementById('admin-entry').style.display = 'block';
-          }
+  try {
+    const res = await api(WORKER_URL + "?user_id=" + user.id);
+    const data = await res.json();
 
-          showScreen('app');
-        } else { showScreen('locked'); }
-      } catch (e) { showScreen('locked'); }
-    }
+    // показываем ответ воркера прямо на экране и НЕ уходим дальше
+    if (dbg) dbg.textContent =
+      'initData len: ' + (tg.initData ? tg.initData.length : 'ПУСТО') +
+      ' | ОТВЕТ: ' + JSON.stringify(data).slice(0, 200);
+
+    return;  // ⛔ ВРЕМЕННО останавливаемся здесь, чтобы прочитать текст
+
+    // --- дальше старый код (пока не выполнится) ---
+  } catch (e) {
+    if (dbg) dbg.textContent = 'ДИАГ: ошибка сети — ' + String(e).slice(0,150);
+  }
+}
 
         // 🎖 === МОДАЛКА УРОВНЕЙ ===
     function openLevelModal() {
