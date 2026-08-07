@@ -168,15 +168,26 @@
       border:1px solid rgba(255,255,255,0.06);
       border-radius:12px;
     }
-        /* === РЕАКЦИИ === */
+    /* === РЕАКЦИИ === */
     .react-row { display:flex; gap:10px; justify-content:center; margin:16px 0 4px; }
-    .react-btn { flex:1; max-width:90px; background:var(--bg); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:10px 6px; cursor:pointer; transition:transform .1s, border-color .15s, background .15s; display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .react-btn {
+      flex:1; max-width:100px; min-width:72px;
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      padding:10px 6px; border-radius:14px;
+      background:var(--bg); border:1px solid rgba(255,255,255,0.12);
+      cursor:pointer; transition:transform .1s, border-color .15s, background .15s;
+    }
     .react-btn:active { transform:scale(0.92); }
-    .react-btn .r-emoji { font-size:24px; line-height:1; }
+    .react-btn .r-icon svg { width:24px; height:24px; stroke:var(--hint); display:block; }
+    .react-btn.active .r-icon svg { stroke:var(--accent); }
+    .react-btn .r-label { font-size:11px; font-weight:600; color:var(--hint); }
+    .react-btn.active .r-label { color:var(--accent); }
     .react-btn .r-count { font-size:13px; font-weight:700; color:var(--hint); }
-    .react-btn.active { border-color:var(--accent); background:rgba(200,168,107,0.12); }
     .react-btn.active .r-count { color:var(--accent); }
-        /* === МАРАФОН === */
+    .react-btn.active { border-color:var(--accent); background:rgba(200,168,107,0.12); }
+    #react-left { text-align:center; font-size:11px; color:var(--hint); margin-top:8px; }
+    #react-left b { color:var(--accent); }
+    /* === МАРАФОН === */
     .mar-hero { background:linear-gradient(135deg, rgba(200,168,107,0.15), rgba(200,168,107,0.03)); border:1px solid var(--accent); border-radius:20px; padding:22px; margin-bottom:16px; text-align:center; }
     .mar-hero .m-day { font-size:38px; font-weight:800; color:var(--accent); line-height:1; }
     .mar-hero .m-day span { font-size:18px; color:var(--hint); font-weight:600; }
@@ -554,17 +565,17 @@
     // 🎖 Уровни (считаются от profile.score на фронте)
 const LEVELS = [
   { lvl: 1,  title: "Присутствующий",   min: 0 },
-  { lvl: 2,  title: "Участник",          min: 90 },
-  { lvl: 3,  title: "Практик",           min: 200 },
-  { lvl: 4,  title: "Вовлечённый",       min: 360 },
-  { lvl: 5,  title: "Действующий",       min: 560 },
-  { lvl: 6,  title: "Заметный",          min: 820 },
-  { lvl: 7,  title: "Весомый",           min: 1150 },
-  { lvl: 8,  title: "Надёжный",          min: 1550 },
-  { lvl: 9,  title: "Опорный",           min: 2050 },
-  { lvl: 10, title: "Авторитетный",      min: 2700 },
-  { lvl: 11, title: "Влиятельный",       min: 3600 },
-  { lvl: 12, title: "Основа сообщества", min: 4800 },
+  { lvl: 2,  title: "Участник",          min: 40 },
+  { lvl: 3,  title: "Практик",           min: 90 },
+  { lvl: 4,  title: "Вовлечённый",       min: 160 },
+  { lvl: 5,  title: "Действующий",       min: 250 },
+  { lvl: 6,  title: "Заметный",          min: 360 },
+  { lvl: 7,  title: "Весомый",           min: 500 },
+  { lvl: 8,  title: "Надёжный",          min: 680 },
+  { lvl: 9,  title: "Опорный",           min: 900 },
+  { lvl: 10, title: "Авторитетный",      min: 1150 },
+  { lvl: 11, title: "Влиятельный",       min: 1450 },
+  { lvl: 12, title: "Основа сообщества", min: 1800 },
 ];
 
 // возвращает { current, next, progress }
@@ -2244,6 +2255,9 @@ function closeAwardModal() {
         
         // 🫶 рисуем кнопки реакций
         renderReactions(p.reactions || {}, p.my_reactions || []);
+        if (typeof data.profile.reactions_left === 'number') {
+  updateReactionsLeft(data.profile.reactions_left);
+}
 
       // 👑 если это OWNER — показываем панель управления наградами и статами
         if (String(user.id) === String(OWNER_ID)) {
@@ -2262,50 +2276,85 @@ function closeAwardModal() {
     }
     
     // 🫶 === РЕАКЦИИ ===
-    const REACTIONS = ["🫶", "👍", "💪"]; // должны совпадать с воркером
+    const REACTIONS = ["strength", "point", "respect"];
 
-    function renderReactions(counts, mine) {
-      const box = document.getElementById('react-box');
-      box.innerHTML = REACTIONS.map(emoji => {
-        const cnt = counts[emoji] || 0;
-        const active = mine.includes(emoji) ? 'active' : '';
-        return `<div class="react-btn ${active}" onclick="toggleReaction('${emoji}')">
-                  <div class="r-emoji">${emoji}</div>
-                  <div class="r-count">${cnt}</div>
-                </div>`;
-      }).join('');
-    }
+const REACTION_META = {
+  strength: {
+    label: "Сила",
+    hint: "за волю и дисциплину",
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>'
+  },
+  point: {
+    label: "В точку",
+    hint: "за дельную мысль",
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>'
+  },
+  respect: {
+    label: "Уважение",
+    hint: "за поступок и вклад",
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>'
+  }
+};
+
+   function renderReactions(counts, mine) {
+  const box = document.getElementById('react-box');
+  box.innerHTML = REACTIONS.map(key => {
+    const meta = REACTION_META[key];
+    const cnt = counts[key] || 0;
+    const active = mine.includes(key) ? 'active' : '';
+    return `<div class="react-btn ${active}" data-key="${key}" onclick="toggleReaction('${key}')">
+              <div class="r-icon">${meta.icon}</div>
+              <div class="r-label">${meta.label}</div>
+              <div class="r-count">${cnt}</div>
+            </div>`;
+  }).join('');
+}
+
+    function updateReactionsLeft(left) {
+  let el = document.getElementById('react-left');
+  if (!el) {
+    // создаём строчку под блоком реакций, если её ещё нет
+    const box = document.getElementById('react-box');
+    el = document.createElement('div');
+    el.id = 'react-left';
+    box.insertAdjacentElement('afterend', el);
+  }
+  el.innerHTML = 'Реакций осталось в этом месяце: <b>' + left + '</b> из 30';
+}
 
     let reactionBusy = false;   // 🔒 флаг: идёт запрос реакции
 
-    async function toggleReaction(emoji) {
+        async function toggleReaction(key) {
       if (!currentTargetId) return;
-      if (reactionBusy) return;          // 🔒 уже летит запрос — игнорим двойной тап
-      reactionBusy = true;               // 🔒 закрываем
       tg.HapticFeedback?.impactOccurred('light');
       try {
         const res = await api(WORKER_URL + "?action=toggle_reaction&user_id=" + user.id, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ target_id: currentTargetId, emoji: emoji })
+          body: JSON.stringify({ target_id: currentTargetId, emoji: key })
         });
         const data = await res.json();
+
         if (data.ok) {
           const btns = document.querySelectorAll('#react-box .react-btn');
           btns.forEach(b => {
-            if (b.querySelector('.r-emoji').textContent === emoji) {
+            if (b.dataset.key === key) {
               b.classList.toggle('active', data.active);
               b.querySelector('.r-count').textContent = data.count;
             }
           });
-          if (data.active) showToast(`${emoji} отправлено!`);
+          if (typeof data.reactions_left === 'number') {
+            updateReactionsLeft(data.reactions_left);
+          }
+        } else if (data.error === 'react_limit') {
+          showToast(data.message || 'Реакции на месяц закончились');
+        } else if (data.error === 'self') {
+          showToast('Нельзя отметить самого себя');
         } else {
           showToast('Не удалось');
         }
       } catch (e) {
         showToast('Ошибка сети');
-      } finally {
-        reactionBusy = false;            // 🔒 открываем в любом случае
       }
     }
 
