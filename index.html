@@ -341,7 +341,7 @@
     <div class="logo">TRIUMPH OWNER</div>
     <div class="subtitle">Закрытый мужской канал</div>
     <div class="lock-title">Доступ только для участников</div>
-    <p class="lock-text">Это приложение доступно только действующим участникам клуба OWNER. Чтобы получить доступ — оформляй подписку.</p>
+    <p class="lock-text">Это приложение доступно только действующим участникам TRIUMPH OWNER. Чтобы получить доступ — оформляй подписку.</p>
     <button class="join-btn" onclick="goToPayment()">Вступить в Triumph Owner</button>
   </div>
 
@@ -356,7 +356,7 @@
   </div>
   <div class="quick-btn" onclick="openChat()">
     <div class="ico"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 14.286V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/><path d="M20 9a2 2 0 0 1 2 2v10.286a.71.71 0 0 1-1.212.502l-2.202-2.202A2 2 0 0 0 17.172 19H10a2 2 0 0 1-2-2v-1"/></svg></div>
-    <div class="lbl">Чат клуба</div>
+    <div class="lbl">Чат канала</div>
   </div>
 </div>
       <div class="section-title">Сезоны</div>
@@ -380,7 +380,7 @@
       <div class="profile-top">
         <div class="avatar" id="avatar">👤</div>
         <div class="profile-name" id="p-name">Участник</div>
-        <div class="profile-status">Участник клуба OWNER</div>
+        <div class="profile-status">Участник OWNER</div>
         <div class="level-badge" id="p-level-badge">— уровень</div>
       </div>
         <div class="stat-grid">
@@ -561,7 +561,7 @@
     const RULES_URL    = "";
     const DATA_PATH    = "data/";
 
-    // 🏅 Список всех наград клуба
+    // 🏅 Список всех наград канала
     function awardById(id) { return AWARD_DEFS.find(a => a.id === id); }
     
     function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -1832,13 +1832,13 @@ function getLevel(score) {
 
         // 💰 === РАЗБИВКА БАЛЛОВ ===
     const SCORE_ROWS = [
-      { key: 'days',      label: 'Дни в клубе',       hint: (b) => b.days + ' дн. × 1' },
+      { key: 'days',      label: 'Дни в Owner',       hint: (b) => b.days + ' дн. × 1' },
       { key: 'survey',    label: 'Опросы',       hint: (b) => (b.survey/5) + ' × 5' },
       { key: 'marathon',  label: 'Марафоны',     hint: (b) => (b.marathon/20) + ' × 20' },
       { key: 'reactions', label: 'Реакции',           hint: (b) => (b.reactions_count||0) + ' × 2' },
       { key: 'comments',  label: 'Комментарии',       hint: (b) => (b.comments/2) + ' × 2' },
       { key: 'awards', label: 'Награды', hint: (b) => (b.awards_count||0) + ' шт. (по тирам)' },
-      { key: 'manual',    label: 'Бонусы от клуба',   hint: () => 'начислено вручную' },
+      { key: 'manual',    label: 'Бонусы от Owner',   hint: () => 'начислено вручную' },
     ];
 
     function openScoreBreakdown() {
@@ -2428,7 +2428,7 @@ const REACTION_META = {
       if (currentFrozen) {
         box.innerHTML =
           '<div style="font-size:12px;color:#ff8a8a;margin-bottom:8px;">Участник на паузе: дни не идут, скрыт из рейтинга.</div>' +
-          '<button onclick="toggleFreeze(false)" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">▶️ Вернуть в клуб</button>';
+          '<button onclick="toggleFreeze(false)" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;">▶️ Вернуть в канал</button>';
       } else {
         box.innerHTML =
           '<div style="font-size:12px;color:var(--hint);margin-bottom:8px;">Отметь, если участника выкинуло за неуплату. Дни встанут на паузу.</div>' +
