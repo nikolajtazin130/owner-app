@@ -1818,8 +1818,8 @@ function getLevel(score) {
         // 💰 === РАЗБИВКА БАЛЛОВ ===
     const SCORE_ROWS = [
       { key: 'days',      label: 'Дни в клубе',       hint: (b) => b.days + ' дн. × 1' },
-      { key: 'survey',    label: 'Опросы',            hint: (b) => (b.survey/2) + ' × 2' },
-      { key: 'marathon',  label: 'Марафоны',          hint: (b) => (b.marathon/5) + ' × 5' },
+      { key: 'survey',    label: 'Опросы',       hint: (b) => (b.survey/5) + ' × 5' },
+      { key: 'marathon',  label: 'Марафоны',     hint: (b) => (b.marathon/20) + ' × 20' },
       { key: 'reactions', label: 'Реакции',           hint: (b) => (b.reactions_count||0) + ' × 2' },
       { key: 'comments',  label: 'Комментарии',       hint: (b) => (b.comments) + ' × 1' },
       { key: 'awards', label: 'Награды', hint: (b) => (b.awards_count||0) + ' шт. (по тирам)' },
@@ -2830,6 +2830,7 @@ function closeAwardModal() {
       tg.HapticFeedback?.impactOccurred('light');
       const h = window.MARATHON_HISTORY[idx];
       if (!h) return;
+      if (!marathonMeta) { showToast('Открой марафон, чтобы посмотреть отчёт'); return; }
 
       let level = { title: 'Пройден', emoji: '🏆', text: '' };
       if (marathonMeta?.levels) {
@@ -2903,7 +2904,7 @@ function closeAwardModal() {
 
     async function refreshProfileSilently() {
       try {
-        const res = await api(WORKER_URL + "?user_id=" + user.id);
+        const res = await api(WORKER_URL + "?action=get_profile&user_id=" + user.id);
         const data = await res.json();
         if (data.ok && data.profile) { window.PROFILE = data.profile; renderProfileStats(data.profile); }
       } catch (e) {}
