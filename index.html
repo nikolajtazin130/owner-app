@@ -548,6 +548,8 @@
 
     // 🏅 Список всех наград клуба
     function awardById(id) { return AWARD_DEFS.find(a => a.id === id); }
+    
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
     // 🎖 Уровни (считаются от profile.score на фронте)
 const LEVELS = [
@@ -2146,7 +2148,7 @@ function closeAwardModal() {
           const medal = row.place <= 3 ? MEDAL_SVG : row.place;
                     return `<div class="rank-row ${topClass} ${isSelf ? 'self' : ''}" style="cursor:pointer" onclick="openPublicProfile('${row.user_id}', ${row.place})">
                     <div class="rk-place">${medal}</div>
-                    <div class="rk-name">${row.name}${isSelf ? ' (ты)' : ''}</div>
+                    <div class="rk-name">${esc(row.name)}${isSelf ? ' (ты)' : ''}</div>
                     <div class="rk-score">${row.score}</div>
                   </div>`;
         }).join('');
@@ -2950,7 +2952,7 @@ function closeAwardModal() {
           const hiddenMark = u.hidden ? ' 🙈' : '';
           return `<div class="rank-row" style="cursor:pointer"
                     onclick="openPublicProfile('${u.user_id}', null)">
-                    <div class="rk-name">${u.name}${hiddenMark}
+                    <div class="rk-name">${esc(u.name)}${hiddenMark}
                       <div style="font-size:11px;color:var(--hint);margin-top:2px;">ID ${u.user_id}</div>
                     </div>
                     <div class="rk-score">${u.score}</div>
