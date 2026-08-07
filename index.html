@@ -405,11 +405,16 @@
       </div>
       <div class="section-title">Достижения</div>
       <div id="awards-list"><div class="empty" style="padding:20px 0;font-size:12px;">Награды появятся здесь</div></div>
-            <!-- 👑 Виден только OWNER -->
+            
+      <!-- 👑 Виден только OWNER -->
       <div id="admin-entry" style="display:none;margin-top:24px;">
         <div class="card" onclick="openAdminUsers()" style="border-color:var(--accent);">
           <h3>🛠 Админ-панель</h3>
           <p>Участники · поиск · награды</p>
+        </div>
+        <div class="card" onclick="downloadBackup()" style="border-color:var(--accent);">
+          <h3>💾 Скачать бэкап</h3>
+          <p>Выгрузить все профили в файл</p>
         </div>
       </div>
     </div>
@@ -2965,6 +2970,39 @@ const REACTION_META = {
     }
     // ═══════════ КОНЕЦ МАРАФОНА (фронт) ═══════════
 
+    // 💾 Скачать бэкап всех профилей в JSON-файл
+    async function downloadBackup() {
+      tg.HapticFeedback?.impactOccurred('medium');
+      showToast('Готовлю бэкап…');
+      try {
+        const res = await api(WORKER_URL + "?action=export_all&user_id=" + user.id);
+        const data = await res.json();
+        if (!data.ok) { showToast('Не удалось: ' + (data.error || '')); return; }
+
+        // формируем красивый JSON-файл
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const urlObj = URL.createObjectURL(blob);
+
+        // имя файла с датой: owner-backup-2025-01-15.json
+        const d = new Date();
+        const stamp = d.getFullYear() + '-' +
+          String(d.getMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getDate()).padStart(2, '0');
+        const a = document.createElement('a');
+        a.href = urlObj;
+        a.download = 'owner-backup-' + stamp + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(urlObj);
+
+        showToast('Бэкап скачан: ' + data.users_count + ' профилей ✅');
+      } catch (e) {
+        showToast('Ошибка сети');
+      }
+    }
+
+    
         // ═══════════ 👑 АДМИН-ПАНЕЛЬ: УЧАСТНИКИ ═══════════
     function openAdminUsers() {
       tg.HapticFeedback?.impactOccurred('light');
