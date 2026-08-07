@@ -2023,6 +2023,7 @@ function closeAwardModal() {
       try {
         const res = await api(WORKER_URL + "?user_id=" + user.id);
         const data = await res.json();
+        showToast('ОТВЕТ: ' + JSON.stringify(data).slice(0,120));  // ← ВРЕМЕННО добавь эту строку
         if (data.ok && data.subscribed) {
           const seasons = await loadSeasons();
           renderSeasons(seasons);
