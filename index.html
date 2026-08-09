@@ -219,15 +219,19 @@
     .mar-hist-item .h-info p { font-size:11px; color:var(--hint); }
        /* === ПРОЧИТАНО (посты сезона) === */
     .lesson .read-toggle {
-    min-width:26px; width:26px; height:26px;   /* круг компактный, но крупнее старого (было 24) */
+    min-width:24px; width:24px; height:24px;   /* как было — 24px, ничего не раздувает */
     border-radius:50%; border:2px solid var(--hint);
     display:flex; align-items:center; justify-content:center;
-    font-size:15px; font-weight:700; color:var(--accent);
+    font-size:14px; font-weight:700; color:var(--accent);
     flex-shrink:0; cursor:pointer; transition:transform .15s, background .15s, border-color .15s;
-    /* 🖐 невидимая зона нажатия — увеличивает клик, НЕ раздувая круг */
-    padding:9px; margin:-9px 4px -9px -9px;      /* область клика ~44px, круг остаётся 26px */
-    box-sizing:content-box;
+    box-sizing:border-box;
     position:relative; z-index:2;
+    }
+    /* 🖐 невидимая зона нажатия ВОКРУГ круга — круг остаётся 24px, кликается ~48px */
+    .lesson .read-toggle::before {
+      content:"";
+      position:absolute;
+      top:-12px; left:-12px; right:-12px; bottom:-12px;   /* +12px во все стороны */
     }
     .lesson .read-toggle:active { transform:scale(0.88); }
     .lesson .read-toggle.on { background:var(--accent); border-color:var(--accent); color:#000; }
