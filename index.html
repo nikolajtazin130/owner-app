@@ -2714,13 +2714,30 @@ const REACTION_META = {
         tg.HapticFeedback?.notificationOccurred?.('warning');
         showToast('😔 Марафон провален — был пропуск 2+ дней');
       }
-      if (!st.active) {
+        if (!st.active) {
         sub.textContent = 'Готов начать?';
         let histHtml = renderMarathonHistory(st.history);
+
+        // 🔒 проверяем лимит активных марафонов
+        const activeCount = st.active_count || 0;
+        const maxActive = st.max_active || 2;
+        const limitReached = activeCount >= maxActive;
+
+        const ctaHtml = limitReached
+          ? '<div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">' +
+              '<div style="margin-bottom:10px;color:var(--accent);">' + lockSvg(32) + '</div>' +
+              '<div style="font-size:16px;font-weight:700;margin-bottom:8px;">Лимит марафонов</div>' +
+              '<div style="font-size:13px;color:var(--hint);line-height:1.5;">' +
+                'Можно вести только <b style="color:var(--accent);">' + maxActive + '</b> марафона одновременно.<br>' +
+                'Заверши текущие, чтобы начать новый.' +
+              '</div>' +
+            '</div>'
+          : '<button class="join-btn" style="width:100%;margin-bottom:20px" onclick="startMarathonDay()">Начать марафон</button>';
+
         body.innerHTML =
           '<div class="mar-hero"><div class="m-label" style="margin-top:0;font-size:15px;color:var(--text);line-height:1.5;">' +
           marathonMeta.duration + ' дней. Каждый день — короткая отметка.<br>Пропустишь 2 дня подряд — придётся начать заново.</div></div>' +
-          '<button class="join-btn" style="width:100%;margin-bottom:20px" onclick="startMarathonDay()">Начать марафон</button>' +
+          ctaHtml +
           histHtml;
         return;
       }
@@ -2833,9 +2850,10 @@ const REACTION_META = {
           body: JSON.stringify({ marathon_id: currentMarathon, answers: marathonAnswers })
         });
         const data = await res.json();
-        if (!data.ok) {
+          if (!data.ok) {
           if (data.error === 'already_marked') { showToast('Сегодня уже отмечено ✅'); openMarathon(currentMarathon); return; }
           if (data.error === 'failed') { showToast('😔 Марафон провален'); openMarathon(currentMarathon); return; }
+          if (data.error === 'marathon_limit') { showToast(data.message || 'Достигнут лимит марафонов'); openMarathon(currentMarathon); return; }
           showToast('Не удалось сохранить');
           if (btn) { btn.style.pointerEvents='auto'; btn.textContent='Отметить день'; }
           return;
