@@ -218,8 +218,18 @@
     .mar-hist-item .h-info h5 { font-size:14px; margin-bottom:2px; }
     .mar-hist-item .h-info p { font-size:11px; color:var(--hint); }
        /* === ПРОЧИТАНО (посты сезона) === */
-    .lesson .read-toggle { min-width:24px; height:24px; border-radius:50%; border:2px solid var(--hint); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--accent); flex-shrink:0; margin-top:1px; cursor:pointer; transition:all .15s; }
-    .lesson .read-toggle:active { transform:scale(0.85); }
+    .lesson .read-toggle {
+    min-width:32px; width:32px; height:32px;   /* сам круг стал крупнее (было 24) */
+    border-radius:50%; border:2px solid var(--hint);
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px; font-weight:700; color:var(--accent);
+    flex-shrink:0; cursor:pointer; transition:transform .15s, background .15s, border-color .15s;
+    /* 🖐 невидимая зона нажатия вокруг круга — палец промахивается реже */
+    padding:10px; margin:-10px 0 -10px -10px;   /* расширяем область клика, не сдвигая круг визуально */
+    box-sizing:content-box;                     /* padding НЕ съедает размер круга */
+    position:relative; z-index:2;               /* галочка поверх карточки — клик ловит именно она */
+    }
+    .lesson .read-toggle:active { transform:scale(0.88); }
     .lesson .read-toggle.on { background:var(--accent); border-color:var(--accent); color:#000; }
     .lesson.read-done { opacity:0.5; }
     .read-progress { margin:0 0 18px; }
