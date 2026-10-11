@@ -577,7 +577,7 @@
     const PAYMENT_BOT  = "https://t.me/TriumphOwnerBot";
     const CHANNEL_BASE = "https://t.me/c/3214991403/";
     const CHAT_URL     = "https://t.me/+NfLPVbVuzapmMmEy";
-    const RULES_URL    = "";
+    const RULES_URL    = "https://telegra.ph/DOBRO-POZHALOVAT-V-OWNER-S-CHEGO-NACHAT-10-11";
     const DATA_PATH    = "data/";
 
     // 🏅 Список всех наград канала
@@ -702,7 +702,7 @@ function getLevel(score) {
 
     function goToPayment() { tg.HapticFeedback?.impactOccurred('medium'); tg.openTelegramLink(PAYMENT_BOT); }
     function openChat() { tg.HapticFeedback?.impactOccurred('light'); CHAT_URL ? tg.openTelegramLink(CHAT_URL) : showToast('Ссылка на чат скоро появится'); }
-    function openRules() { tg.HapticFeedback?.impactOccurred('light'); RULES_URL ? tg.openTelegramLink(RULES_URL) : showToast('Правила скоро появятся'); }
+    function openRules() { tg.HapticFeedback?.impactOccurred('light'); RULES_URL ? tg.openLink(RULES_URL) : showToast('Правила скоро появятся'); }
 
     let toastTimer = null;
     function showToast(msg) {
